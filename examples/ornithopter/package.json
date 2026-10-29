@@ -1,0 +1,26 @@
+{
+  "name": "ornithopter",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "description": "The example abaigram: an ornithopter over the dunes, flown by the agent that supervises it",
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.ts",
+    "abai": "node src/main.ts abai",
+    "check": "abaikit check .",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "abai": "file:../../implementations/typescript/abai",
+    "abai-embedded-harness": "file:../../implementations/typescript/abai-embedded-harness",
+    "three": "0.169.0"
+  },
+  "devDependencies": {
+    "abaikit": "file:../../implementations/typescript/abaikit",
+    "vitest": "4.1.9"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}

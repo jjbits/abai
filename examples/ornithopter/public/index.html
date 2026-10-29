@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ornithopter</title>
+<link rel="stylesheet" href="/style.css">
+<script type="importmap">{ "imports": { "three": "/vendor/three.module.js" } }</script>
+</head>
+<body>
+<aside id="hud">
+	<header>
+		<h1>ornithopter</h1>
+		<div id="phase" class="phase grounded">grounded</div>
+	</header>
+	<section class="grid">
+		<div><span class="k">altitude</span><span class="v" id="altitude">–</span><span class="u">m</span></div>
+		<div><span class="k">clearance</span><span class="v" id="clearance">–</span><span class="u">m</span></div>
+		<div><span class="k">speed</span><span class="v" id="speed">–</span><span class="u">m/s</span></div>
+		<div><span class="k">vertical</span><span class="v" id="vspeed">–</span><span class="u">m/s</span></div>
+		<div><span class="k">heading</span><span class="v" id="heading">–</span><span class="u">°</span></div>
+		<div><span class="k">flight</span><span class="v" id="time">–</span><span class="u">s</span></div>
+	</section>
+	<section>
+		<div class="row"><span class="k">power</span><span class="bar"><span id="power-bar"></span></span><span class="v small" id="power">–</span></div>
+	</section>
+	<section>
+		<h2>targets <span class="hint">what the pilot asked for</span></h2>
+		<div class="row"><span class="k">heading</span><span class="v" id="t-heading">–</span><span class="u">°</span>
+			<span class="k">altitude</span><span class="v" id="t-altitude">–</span><span class="u">m</span>
+			<span class="k">speed</span><span class="v" id="t-speed">–</span><span class="u">m/s</span></div>
+	</section>
+	<section id="threat-box">
+		<h2>threat</h2>
+		<div id="threat" class="muted">none ahead</div>
+	</section>
+	<section>
+		<h2>around</h2>
+		<div class="row"><span class="k">terrain ahead</span><span class="v" id="terrain">–</span><span class="u">m clear</span></div>
+		<div class="row"><span class="k">home</span><span class="v" id="home">–</span></div>
+		<div class="row"><span class="k">storm wall</span><span class="v" id="boundary">–</span><span class="u">m</span></div>
+		<ol id="near"></ol>
+	</section>
+	<section>
+		<h2>events</h2>
+		<ul id="log"></ul>
+	</section>
+	<footer>
+		<div id="attach"></div>
+		<div class="hint">v: view · the agent flies; you watch</div>
+	</footer>
+</aside>
+<div id="banner" hidden></div>
+<div id="status">loading the dunes…</div>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# The ornithopter arena on a shared Docker host: one service, bound to the
+# loopback address, behind the host's reverse proxy. Run from the directory
+# that holds the repository checkout as `src/`:
+#   docker compose -f src/examples/ornithopter-arena/deploy/docker-compose.yml up -d --build
+name: ornithopter
+
+services:
+  arena:
+    build:
+      context: ../../..
+      dockerfile: examples/ornithopter-arena/deploy/Dockerfile
+    image: ornithopter-arena:local
+    container_name: ornithopter-arena
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8093:8093"
+    environment:
+      ARENA_PUBLIC_URL: https://ornithopter.gearedagents.com
+      ARENA_TRUST_PROXY: "1"
+      ARENA_MAX_SESSIONS: "18"
+      ARENA_PER_ADDRESS: "3"
+      ARENA_CREATES_PER_MINUTE: "5"
+      ARENA_IDLE_MS: "600000"
+      ARENA_LIFETIME_MS: "10800000"
+      ARENA_WRECK_MS: "600000"
+    # the root filesystem is read-only; sessions' sockets and audit logs live on a tmpfs
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
+    mem_limit: 4g
+    cpus: 4
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"

@@ -1,0 +1,7 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.5/schema.json",
+	"extends": ["../../implementations/typescript/biome.json"],
+	"files": {
+		"includes": ["src/**/*.ts", "test/**/*.ts", "public/**/*.js", "*.ts", "!**/node_modules/**/*"]
+	}
+}

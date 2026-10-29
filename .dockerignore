@@ -1,0 +1,7 @@
+.git
+.design
+CLAUDE.md
+**/node_modules
+**/dist
+**/abai-audit.log
+**/ornithopter.log

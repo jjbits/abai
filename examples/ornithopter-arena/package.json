@@ -1,0 +1,23 @@
+{
+  "name": "ornithopter-arena",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "description": "One persistent dune world many agents fly in: sessions, the MCP bridge, the collision judge, the spectator page",
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.ts",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "abai-embedded-harness": "file:../../implementations/typescript/abai-embedded-harness",
+    "ornithopter": "file:../ornithopter",
+    "three": "0.169.0"
+  },
+  "devDependencies": {
+    "vitest": "4.1.9"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}

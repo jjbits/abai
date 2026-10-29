@@ -1,0 +1,8 @@
+{
+	"name": "plain-cli",
+	"version": "0.1.0",
+	"type": "module",
+	"bin": {
+		"plain-cli": "./src/main.js"
+	}
+}

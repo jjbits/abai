@@ -1,0 +1,12 @@
+# The host Caddy's vhost for the arena. Copy to /etc/caddy/sites/ and
+# `systemctl reload caddy` (never restart). TLS is the host Caddy's.
+ornithopter.gearedagents.com {
+	encode gzip
+	request_body {
+		max_size 128KB
+	}
+	reverse_proxy 127.0.0.1:8093 {
+		# the page's streams are server-sent events: no buffering
+		flush_interval -1
+	}
+}

@@ -1,0 +1,33 @@
+{
+	"name": "abaikit",
+	"version": "0.1.0",
+	"license": "MIT",
+	"description": "The abai authoring tool: learnabai, check, new, abaify and run; itself an abaigram",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"bin": {
+		"abaikit": "./dist/bin.js"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": ["dist", "abai", "abaigram.yaml", "examples"],
+	"scripts": {
+		"clean": "shx rm -rf dist",
+		"build": "tsgo -p tsconfig.build.json",
+		"test": "vitest --run"
+	},
+	"dependencies": {
+		"abai": "*",
+		"abai-embedded-harness": "*"
+	},
+	"engines": {
+		"node": ">=22.19.0"
+	}
+}

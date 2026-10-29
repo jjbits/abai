@@ -1,0 +1,1 @@
+A session with abaikit is about one repository at a time. Start by listing it and reading its package manifest and entry file; propose before you write; after every write, run check and read its report.
