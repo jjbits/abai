@@ -159,7 +159,8 @@ claude      # or: codex
 > Clone https://github.com/jjbits/abai, read its MANUAL.md, and follow it.
 ```
 
-The agent builds the workspace, which takes about twenty seconds, and
+The agent installs the example's packages from npm, which takes a few
+seconds, and
 offers you two things.
 
 **Try one: supervise the example game**, the same ornithopter alone in

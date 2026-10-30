@@ -12,12 +12,12 @@
     "test": "vitest --run"
   },
   "dependencies": {
-    "@abaigram/abai-embedded-harness": "file:../../implementations/typescript/abai-embedded-harness",
-    "@abaigram/abai-stub": "file:../../implementations/typescript/abai-stub",
+    "@abaigram/abai-embedded-harness": "^0.1.0",
+    "@abaigram/abai-stub": "^0.1.0",
     "three": "0.169.0"
   },
   "devDependencies": {
-    "@abaigram/abaikit": "file:../../implementations/typescript/abaikit",
+    "@abaigram/abaikit": "^0.1.0",
     "vitest": "4.1.9"
   },
   "engines": {

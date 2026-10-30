@@ -100,7 +100,7 @@ async function main() {
 		bin = harnessBin();
 	} catch (error) {
 		console.error(
-			`supervise: ${error.code === "ERR_MODULE_NOT_FOUND" ? "the @abaigram/abai-embedded-harness package is not installed here; run npm install in this directory after building the workspace" : error.message}`,
+			`supervise: ${error.code === "ERR_MODULE_NOT_FOUND" ? "the @abaigram/abai-embedded-harness package is not installed here; run npm install in this directory" : error.message}`,
 		);
 		return 2;
 	}

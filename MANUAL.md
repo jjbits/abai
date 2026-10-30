@@ -24,18 +24,17 @@ you.
 
 1. Node 22.19 or newer.
    Verify: `node --version`.
-2. Build the TypeScript workspace: the stub, the harness and abaikit.
-   ```
-   cd implementations/typescript && npm install && npm run build && cd ../..
-   ```
-   Verify: `node implementations/typescript/abaikit/dist/bin.js learnabai --section what`
-   prints the guide's first section and exits 0.
-3. Install the example (it links the packages you just built).
+2. Install the example. The stub, the harness and abaikit come from npm;
+   nothing in this checkout needs building.
    ```
    cd examples/ornithopter && npm install && cd ../..
    ```
    Verify, in `examples/ornithopter`: `node src/main.ts abai doctor --offline`
    ends with `doctor: ok`.
+3. abaikit, the authoring tool, runs from npm through `npx`; nothing is
+   installed globally.
+   Verify: `npx -y @abaigram/abaikit learnabai --section what` prints the
+   guide's first section and exits 0.
 
 ## 2. Try: supervise the ornithopter
 
@@ -135,12 +134,12 @@ What you did is in the audit: `node supervise.mjs --target <pid> audit`.
 Register the harness as an MCP server for your client, then have the
 person restart you in `examples/ornithopter`:
 
-- Claude Code: `claude mcp add abai -- node <checkout>/implementations/typescript/abai-embedded-harness/dist/bin.js mcp`
+- Claude Code: `claude mcp add abai -- node <checkout>/examples/ornithopter/node_modules/@abaigram/abai-embedded-harness/dist/bin.js mcp`
 - Codex, in `~/.codex/config.toml`:
   ```
   [mcp_servers.abai]
   command = "node"
-  args = ["<checkout>/implementations/typescript/abai-embedded-harness/dist/bin.js", "mcp"]
+  args = ["<checkout>/examples/ornithopter/node_modules/@abaigram/abai-embedded-harness/dist/bin.js", "mcp"]
   ```
 
 After the restart, with the game running: `abai_attach` (no target when
@@ -172,16 +171,14 @@ The guide `learnabai` is written for you. Print it and follow it, step by
 step, for the program at the path the person gave:
 
 ```
-node implementations/typescript/abaikit/dist/bin.js learnabai
-node implementations/typescript/abaikit/dist/bin.js learnabai --section retrofit
+npx -y @abaigram/abaikit learnabai
+npx -y @abaigram/abaikit learnabai --section retrofit
 ```
 
-Its install command uses `file:` paths into this checkout; keep them.
-Every step in the guide ends in a command that verifies it, and the
-conformance check is
-`node implementations/typescript/abaikit/dist/bin.js check <path> --level N`.
-For a new program instead of a retrofit:
-`node implementations/typescript/abaikit/dist/bin.js new <name> --lang ts`.
+Its install command names the packages on npm. Every step in the guide
+ends in a command that verifies it, and the conformance check is
+`npx -y @abaigram/abaikit check <path> --level N`. For a new program
+instead of a retrofit: `npx -y @abaigram/abaikit new <name> --lang ts`.
 
 When it is done, supervise the person's program the way you supervised
 the game: start it, then
@@ -189,7 +186,7 @@ the game: start it, then
 and go from there.
 
 An unattended retrofit by abaikit's own agent,
-`node implementations/typescript/abaikit/dist/bin.js abaify <path> --level N`,
+`npx -y @abaigram/abaikit abaify <path> --level N`,
 needs a model configured on this machine; in `examples/ornithopter`,
 `node src/main.ts abai config` says how. Tell the person before you use
 it.
@@ -197,7 +194,8 @@ it.
 ## 4. Never
 
 - Never modify anything under `implementations/` or `spec/`. This
-  checkout is the library, not the person's project.
+  checkout is the library's source, not the person's project; what you
+  installed came from npm, so an edit here changes nothing you run.
 - Never commit or push in this checkout.
 - Never end a process by name or pattern. Only by the pid you started.
 - Never open a network tunnel, or change the person's shell, git or

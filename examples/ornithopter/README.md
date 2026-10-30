@@ -10,7 +10,7 @@ The manual a coding agent follows to fly it is `../../MANUAL.md`. This
 file is for a person reading the code.
 
 ```
-npm install                            # links the stub and the harness from the workspace checkout
+npm install                            # the stub, the harness and abaikit, from npm
 node src/main.ts                       # the game: prints its pid and the page's URL, waits for a pilot
 node src/main.ts --demo                # the scripted flight abaikit check runs, headless and fast
 node src/main.ts abai doctor --offline # the manifest, the content, the modes
