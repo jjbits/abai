@@ -6,7 +6,7 @@
 // served by the stub, since abaikit is itself an abaigram.
 import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { runEntry } from "abai";
+import { runEntry } from "@abaigram/stub";
 import { runAbaify } from "./abaify.ts";
 import { type AbaikitApp, createApp } from "./app.ts";
 import { runCheck } from "./check.ts";

@@ -7,14 +7,14 @@
 // level out of the box. Below its level every declaration kind is present
 // once, commented, as section 13 asks, and uncommenting one is all it
 // takes to make it live.
-import type { AbaigramOptions, CapabilityOptions } from "abai";
+import type { AbaigramOptions, CapabilityOptions } from "@abaigram/stub";
 
 export type Level = 1 | 2 | 3 | 4;
 
 export interface TemplateInput {
 	name: string;
 	level: Level;
-	/** The specifier the generated code imports the stub by; `abai` unless a test points at the source. */
+	/** The specifier the generated code imports the stub by; `@abaigram/stub` unless a test points at the source. */
 	abaiImport: string;
 	/** What `package.json` depends on, in package.json form, and whether the packages are built workspace checkouts. */
 	packages: { abai: string; harness: string; abaikit: string; fromWorkspace: boolean; built: boolean };
@@ -349,8 +349,8 @@ export function templateFiles(input: TemplateInput): Record<string, string> {
 		private: true,
 		type: "module",
 		scripts: { start: "node src/main.ts", abai: "node src/main.ts abai", check: "abaikit check ." },
-		dependencies: { abai: packages.abai, "abai-embedded-harness": packages.harness },
-		devDependencies: { abaikit: packages.abaikit },
+		dependencies: { "@abaigram/embedded-harness": packages.harness, "@abaigram/stub": packages.abai },
+		devDependencies: { "@abaigram/abaikit": packages.abaikit },
 		engines: { node: ">=22.19.0" },
 	};
 	return {

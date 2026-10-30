@@ -15,9 +15,9 @@ export default defineConfig({
 	},
 	resolve: {
 		alias: [
-			{ find: /^abai$/, replacement: stubSourceIndex },
-			{ find: /^abai-embedded-harness$/, replacement: harnessSourceIndex },
-			{ find: /^abaikit$/, replacement: abaikitSourceIndex },
+			{ find: /^@abaigram\/stub$/, replacement: stubSourceIndex },
+			{ find: /^@abaigram\/embedded-harness$/, replacement: harnessSourceIndex },
+			{ find: /^@abaigram\/abaikit$/, replacement: abaikitSourceIndex },
 		],
 	},
 });

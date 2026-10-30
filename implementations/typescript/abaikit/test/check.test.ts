@@ -53,7 +53,7 @@ function copyHello(dir: string): string {
 	const copy = join(dir, "hello");
 	cpSync(helloExample, copy, { recursive: true });
 	const program = join(copy, "hello.ts");
-	writeFileSync(program, readFileSync(program, "utf8").replace('from "abai"', `from "${stubSrc}/index.ts"`));
+	writeFileSync(program, readFileSync(program, "utf8").replace('from "@abaigram/stub"', `from "${stubSrc}/index.ts"`));
 	return copy;
 }
 

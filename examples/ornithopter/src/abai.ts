@@ -6,7 +6,7 @@
 // The doc fields are the agent's manual for each channel: they are rendered
 // into its prompt, so they say what a pilot needs to know.
 import { fileURLToPath } from "node:url";
-import { type CapabilityOptions, type CellOptions, createAbaigram } from "abai";
+import { type CapabilityOptions, type CellOptions, createAbaigram } from "@abaigram/stub";
 import { PHASES } from "./sim.ts";
 import { AUTOPILOT, FLIGHT, KNOBS, POWER, SENSORS, TRAFFIC, WORLD } from "./tuning.ts";
 

@@ -178,8 +178,8 @@ ending in a command that proves it:
 > Make a new abaigram called <name>.
 ```
 
-The three packages are on npm as `abai`, `abai-embedded-harness` and
-`abaikit`.
+The library is on npm as `@abaigram/stub` and `@abaigram/embedded-harness`;
+the tool as `@abaigram/abaikit`.
 
 ## ⚠️ A note on security
 

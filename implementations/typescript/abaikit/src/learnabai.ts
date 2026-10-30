@@ -8,7 +8,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, join, resolve } from "node:path";
-import { ABAI_STUB_VERSION, ABAIGRAMMAR_VERSION, INSTANTIATION_DEVIATIONS, SIDECAR_DEVIATION } from "abai";
+import { ABAI_STUB_VERSION, ABAIGRAMMAR_VERSION, INSTANTIATION_DEVIATIONS, SIDECAR_DEVIATION } from "@abaigram/stub";
 import { PACKAGE_ROOT } from "./abaigram.ts";
 import type { ParsedArgs } from "./bin.ts";
 import { type AbaikitIo, UsageError } from "./io.ts";
@@ -72,7 +72,11 @@ export function packageSpecs(packageRoot: string = PACKAGE_ROOT): PackageSpecs {
 	const inWorkspace = basename(workspace) !== "node_modules" && workspaces.includes(basename(packageRoot));
 	const abai = join(workspace, "abai");
 	const harness = join(workspace, "abai-embedded-harness");
-	if (inWorkspace && readPackage(abai)?.name === "abai" && readPackage(harness)?.name === "abai-embedded-harness") {
+	if (
+		inWorkspace &&
+		readPackage(abai)?.name === "@abaigram/stub" &&
+		readPackage(harness)?.name === "@abaigram/embedded-harness"
+	) {
 		const built = existsSync(join(abai, "dist", "index.js")) && existsSync(join(harness, "dist", "index.js"));
 		return {
 			abai: `file:${abai}`,
@@ -82,10 +86,10 @@ export function packageSpecs(packageRoot: string = PACKAGE_ROOT): PackageSpecs {
 			built,
 		};
 	}
-	const harnessVersion = (require("abai-embedded-harness/package.json") as { version: string }).version;
+	const harnessVersion = (require("@abaigram/embedded-harness/package.json") as { version: string }).version;
 	return {
-		abai: `abai@^${ABAI_STUB_VERSION}`,
-		harness: `abai-embedded-harness@^${harnessVersion}`,
+		abai: `@abaigram/stub@^${ABAI_STUB_VERSION}`,
+		harness: `@abaigram/embedded-harness@^${harnessVersion}`,
 		dependency: { abai: `^${ABAI_STUB_VERSION}`, harness: `^${harnessVersion}`, abaikit: `^${ABAIKIT_VERSION}` },
 		fromWorkspace: false,
 		built: true,

@@ -1,7 +1,7 @@
+import { ABAI_STUB_VERSION } from "@abaigram/stub";
 import { Agent } from "@arx-06/agent";
 import { createModels, fauxAssistantMessage, fauxProvider } from "@arx-06/ai";
 import { anthropicProvider } from "@arx-06/ai/providers/anthropic";
-import { ABAI_STUB_VERSION } from "abai";
 import { expect, test } from "vitest";
 import { ABAI_HARNESS_VERSION } from "../src/index.ts";
 

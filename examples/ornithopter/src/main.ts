@@ -10,7 +10,7 @@
 // find the game already running, because it is started before the entry is
 // handed those arguments. `--demo` is the scripted headless flight that
 // `abaikit check` runs.
-import { runEntry } from "abai";
+import { runEntry } from "@abaigram/stub";
 import { app, stop } from "./abai.ts";
 import { type Channels, wireChannels } from "./channels.ts";
 import { runDemo } from "./demo.ts";

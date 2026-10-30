@@ -11,8 +11,8 @@
 // the repository whatever happened.
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { Mode } from "abai";
-import type { AgentModel, SessionForm, UserChannel } from "abai-embedded-harness";
+import type { AgentModel, SessionForm, UserChannel } from "@abaigram/embedded-harness";
+import type { Mode } from "@abaigram/stub";
 import type { AbaikitApp } from "./app.ts";
 import type { ParsedArgs } from "./bin.ts";
 import { type CheckReport, checkRepository, recordCheck, renderReport } from "./check.ts";
@@ -148,7 +148,7 @@ export function brief(root: string, level: number, mode: Mode | undefined, inv: 
 		"You work only through abaikit's capabilities (the abai_call tool), with `repo` set to exactly the path above:",
 		"- repo.list (glob narrows: `*.json` by name anywhere, `src/**` or `scripts/*.mjs` by path; the listing is bounded and says so first), repo.read (a window of lines; the result says `from` and `to`).",
 		"- repo.write makes a new file only. repo.insert puts text before or after one unique anchor line of an existing file; no line the repository had is ever removed or reordered. repo.add_dependency adds to package.json (a structured edit that re-serializes the file). repo.manifest runs the entry's `manifest` and writes abaigram.yaml: never write that file yourself. repo.install runs npm install (the lock file and node_modules are rewritten). check gives the conformance report.",
-		"- You cannot run shell commands or build the repository. Where the procedure below says `npm install`, call repo.add_dependency for both `abai` and `abai-embedded-harness`, then repo.install once. Where it says `<entry> manifest > abaigram.yaml`, call repo.manifest with the entry. Where it says `abaikit check`, call check. Where it says build: " +
+		"- You cannot run shell commands or build the repository. Where the procedure below says `npm install`, call repo.add_dependency for both `@abaigram/stub` and `@abaigram/embedded-harness`, then repo.install once. Where it says `<entry> manifest > abaigram.yaml`, call repo.manifest with the entry. Where it says `abaikit check`, call check. Where it says build: " +
 			(inv.buildOutput.length > 0
 				? `the build output is present (${inv.buildOutput.map((d) => `${d}/`).join(", ")}), so the built program runs; prefer a cell or event at a real boundary of the program and a check.run that is a real command of it, over a synthetic mode.`
 				: "there is no build output, so choose a path that needs no build: a plain `.mjs` module beside a launcher, a cell or event set in code that runs unbuilt."),

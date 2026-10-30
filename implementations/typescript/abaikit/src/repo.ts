@@ -10,7 +10,7 @@
 // abaikit's own `repo.changed` event.
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import type { Abaigram } from "abai";
+import type { Abaigram } from "@abaigram/stub";
 import { runCommand, subjectEnv } from "./command.ts";
 import { UsageError } from "./io.ts";
 import { packageSpecs } from "./learnabai.ts";
@@ -420,15 +420,17 @@ export function addDependency(
 	const known = packageSpecs().dependency;
 	const chosen =
 		spec ??
-		(name === "abai"
+		(name === "@abaigram/stub"
 			? known.abai
-			: name === "abai-embedded-harness"
+			: name === "@abaigram/embedded-harness"
 				? known.harness
-				: name === "abaikit"
+				: name === "@abaigram/abaikit"
 					? known.abaikit
 					: undefined);
 	if (chosen === undefined)
-		throw new UsageError(`${name} needs a spec; only abai, abai-embedded-harness and abaikit have a default here`);
+		throw new UsageError(
+			`${name} needs a spec; only @abaigram/stub, @abaigram/embedded-harness and @abaigram/abaikit have a default here`,
+		);
 	const deps = (pkg.dependencies ?? {}) as Record<string, string>;
 	if (deps[name] !== undefined) return { spec: deps[name], added: false };
 	if (ctx.dryRun) {

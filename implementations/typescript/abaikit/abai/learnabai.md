@@ -81,7 +81,7 @@ real API; copy what you need and delete the rest.
 ```ts
 // src/abai.ts
 import { fileURLToPath } from "node:url";
-import { createAbaigram } from "abai";
+import { createAbaigram } from "@abaigram/stub";
 
 export const app = createAbaigram(
 	{
@@ -166,8 +166,8 @@ await app.attach();                                    // optional: ask for the 
 ```
 
 abai is ESM-only. In a CommonJS repository load it inside the async main:
-`const { createAbaigram, runEntry } = await import("abai");` (Node 22.12 and
-later can also `require("abai")`). Under `verbatimModuleSyntax` the imports
+`const { createAbaigram, runEntry } = await import("@abaigram/stub");` (Node 22.12 and
+later can also `require("@abaigram/stub")`). Under `verbatimModuleSyntax` the imports
 above are all value imports and need no change; a type you import, such as
 `Abaigram`, needs `import type`.
 
@@ -195,7 +195,7 @@ Every abaigram answers `<prog> abai ...`. The stub provides it; the
 program hands it the arguments first thing in `main()`:
 
 ```ts
-import { runEntry } from "abai";
+import { runEntry } from "@abaigram/stub";
 import { app } from "./abai.js";
 
 async function main(): Promise<void> {
@@ -314,7 +314,7 @@ npm install {{abai_spec}} {{harness_spec}}
 ```
 {{workspace_note}}
 Verify, in the repository root:
-`node -e "import('abai').then(m => console.log(m.ABAI_STUB_VERSION))"`
+`node -e "import('@abaigram/stub').then(m => console.log(m.ABAI_STUB_VERSION))"`
 prints `{{stub}}`.
 
 Step 2. Declare the abaigram in a new module (`src/abai.ts`, or

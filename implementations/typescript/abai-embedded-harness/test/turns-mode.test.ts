@@ -5,9 +5,9 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { type AbaigramOptions, createAbaigram } from "@abaigram/stub";
 import type { JsonObject, TranscriptContext } from "@arx-06/ai";
 import { createModels, type FauxResponseStep, fauxAssistantMessage, fauxProvider, fauxToolCall } from "@arx-06/ai";
-import { type AbaigramOptions, createAbaigram } from "abai";
 import { afterEach, describe, expect, test } from "vitest";
 import { SessionForm } from "../src/agent.ts";
 import { Harness } from "../src/harness.ts";

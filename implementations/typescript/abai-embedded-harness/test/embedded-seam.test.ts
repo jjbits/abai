@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 test("a program with the harness installed but no model attaches nothing, with the reason (through the built packages)", () => {
-	// the copy lives inside the workspace so the bare import of abai-embedded-harness resolves
+	// the copy lives inside the workspace so the bare import of @abaigram/embedded-harness resolves
 	const copy = mkdtempSync(join(resolve(import.meta.dirname, ".."), "tmp-seam-"));
 	dirs.push(copy);
 	cpSync(example, copy, { recursive: true });

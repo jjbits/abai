@@ -4,8 +4,9 @@
 // harness is attached through a factory whose options a verb may set before
 // attaching, which is how abaify gives its agent auto consent and its own
 // channel; the harness package is loaded only when an attach happens.
-import type { Abaigram } from "abai";
-import type { Embedded, EmbeddedOptions } from "abai-embedded-harness";
+
+import type { Embedded, EmbeddedOptions } from "@abaigram/embedded-harness";
+import type { Abaigram } from "@abaigram/stub";
 import { createAbaikit } from "./abaigram.ts";
 import { checkHandler } from "./check.ts";
 import type { AbaikitIo } from "./io.ts";
@@ -36,7 +37,7 @@ export function createApp(io: AbaikitIo): AbaikitApp {
 		{
 			env: io.env,
 			harness: async (binding) => {
-				const { attachEmbedded } = await import("abai-embedded-harness");
+				const { attachEmbedded } = await import("@abaigram/embedded-harness");
 				embedding.current = await attachEmbedded(binding, { env: io.env, ...embedding.options });
 			},
 		},

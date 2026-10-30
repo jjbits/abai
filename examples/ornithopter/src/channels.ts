@@ -1,7 +1,7 @@
 // The wiring between the flight model and the agent's channels: the senses
 // into cells, the knobs into the autopilot's targets, the capabilities onto
 // the ship's acts, the ship's events onto the declared events.
-import type { Abaigram } from "abai";
+import type { Abaigram } from "@abaigram/stub";
 import { clamp, round1 } from "./math.ts";
 import type { Sim } from "./sim.ts";
 import { KNOBS, SENSORS, TRAFFIC } from "./tuning.ts";

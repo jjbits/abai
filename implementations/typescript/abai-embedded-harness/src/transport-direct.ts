@@ -2,7 +2,7 @@
 // stub's HarnessBinding (abaigrammar section 6.1 and 6.2). Every channel is
 // a function call; nothing crosses a boundary. Claims are a no-op: the stub
 // asks the harness every declared decision.
-import type { Consent, HarnessBinding } from "abai";
+import type { Consent, HarnessBinding } from "@abaigram/stub";
 import type {
 	AuditData,
 	StubTransport,

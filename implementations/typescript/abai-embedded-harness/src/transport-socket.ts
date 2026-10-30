@@ -6,7 +6,15 @@
 // transport speaks an extension only when it is advertised. Events are
 // pushed by the program after hello; `events()` has nothing to page. Every
 // library request is bounded: a stalled program never hangs the harness.
-import type { Consent, Extension, HookMessage, Manifest, SubscriptionFilter, WireErrorCode, WireResponse } from "abai";
+import type {
+	Consent,
+	Extension,
+	HookMessage,
+	Manifest,
+	SubscriptionFilter,
+	WireErrorCode,
+	WireResponse,
+} from "@abaigram/stub";
 import { ATTACH_REQUEST_TIMEOUT_MS, POLL_REQUEST_TIMEOUT_MS } from "./scheduler.ts";
 import type {
 	AuditData,

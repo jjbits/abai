@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
-import { type AbaigramOptions, createAbaigram, type DirectBinding, type HarnessBinding } from "abai";
+import { type AbaigramOptions, createAbaigram, type DirectBinding, type HarnessBinding } from "@abaigram/stub";
 import { afterEach, describe, expect, test } from "vitest";
 import { Harness } from "../src/harness.ts";
 import { MCP_PROTOCOL_VERSIONS, MCP_SERVER_NAME, PARKED_UNDECIDED, serveMcp } from "../src/mcp.ts";

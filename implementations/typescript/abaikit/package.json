@@ -1,5 +1,5 @@
 {
-	"name": "abaikit",
+	"name": "@abaigram/abaikit",
 	"version": "0.1.0",
 	"license": "MIT",
 	"repository": {
@@ -22,6 +22,9 @@
 		},
 		"./package.json": "./package.json"
 	},
+	"publishConfig": {
+		"access": "public"
+	},
 	"files": ["dist", "abai", "abaigram.yaml", "examples"],
 	"scripts": {
 		"clean": "shx rm -rf dist",
@@ -29,8 +32,8 @@
 		"test": "vitest --run"
 	},
 	"dependencies": {
-		"abai": "0.1.0",
-		"abai-embedded-harness": "0.1.0"
+		"@abaigram/embedded-harness": "0.1.0",
+		"@abaigram/stub": "0.1.0"
 	},
 	"engines": {
 		"node": ">=22.19.0"

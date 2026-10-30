@@ -168,7 +168,7 @@ describe("adding", () => {
 			file,
 			'{\n\t"name": "plain-cli",\n\t"type": "module",\n\t"scripts": { "start": "node src/main.js" }\n}\n',
 		);
-		const added = addDependency(ctx, repo, "abai", undefined, "the stub");
+		const added = addDependency(ctx, repo, "@abaigram/stub", undefined, "the stub");
 		expect(added.added).toBe(true);
 		expect(added.spec).toMatch(/^file:.*\/abai$/);
 		const text = readFileSync(file, "utf8");
@@ -176,13 +176,13 @@ describe("adding", () => {
 		expect(text.endsWith("\n")).toBe(true);
 		expect(JSON.parse(text)).toMatchObject({
 			scripts: { start: "node src/main.js" },
-			dependencies: { abai: added.spec },
+			dependencies: { "@abaigram/stub": added.spec },
 		});
-		expect(addDependency(ctx, repo, "abai", "^9.9.9", "again")).toEqual({ spec: added.spec, added: false });
+		expect(addDependency(ctx, repo, "@abaigram/stub", "^9.9.9", "again")).toEqual({ spec: added.spec, added: false });
 		expect(() => addDependency(ctx, repo, "left-pad", undefined, "why")).toThrow(/needs a spec/);
 		expect(addDependency(ctx, repo, "left-pad", "^1.0.0", "why").added).toBe(true);
 		// sorted place, and a CRLF file stays CRLF
-		expect(Object.keys(JSON.parse(readFileSync(file, "utf8")).dependencies)).toEqual(["abai", "left-pad"]);
+		expect(Object.keys(JSON.parse(readFileSync(file, "utf8")).dependencies)).toEqual(["@abaigram/stub", "left-pad"]);
 		writeFileSync(file, '{\r\n  "name": "crlf",\r\n  "dependencies": { "zeta": "1" }\r\n}\r\n');
 		addDependency(ctx, repo, "alpha", "2", "why");
 		const crlf = readFileSync(file, "utf8");
@@ -225,7 +225,7 @@ describe("adding", () => {
 	test("manifest runs the entry and writes abaigram.yaml; a dry run writes nothing and says what it would", async () => {
 		const { repo, ctx } = copy(hello, "repo-manifest-");
 		const program = join(repo, "hello.ts");
-		writeFileSync(program, readFileSync(program, "utf8").replace('from "abai"', `from "${stubIndex}"`));
+		writeFileSync(program, readFileSync(program, "utf8").replace('from "@abaigram/stub"', `from "${stubIndex}"`));
 		const expected = readFileSync(join(repo, "abaigram.yaml"), "utf8");
 		rmSync(join(repo, "abaigram.yaml"));
 		const result = await regenerateManifest(ctx, repo, "node hello.ts abai", "the manifest");

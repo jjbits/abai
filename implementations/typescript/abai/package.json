@@ -1,5 +1,5 @@
 {
-	"name": "abai",
+	"name": "@abaigram/stub",
 	"version": "0.1.0",
 	"license": "MIT",
 	"repository": {
@@ -18,6 +18,9 @@
 			"default": "./dist/index.js"
 		},
 		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public"
 	},
 	"files": ["dist"],
 	"scripts": {

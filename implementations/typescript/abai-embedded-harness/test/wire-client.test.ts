@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { createServer, type Server, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { PROTOCOL_VERSION, writeDescriptor } from "abai";
+import { PROTOCOL_VERSION, writeDescriptor } from "@abaigram/stub";
 import { afterEach, describe, expect, test } from "vitest";
 import { resolveTarget, WireClient, withReason } from "../src/wire/client.ts";
 

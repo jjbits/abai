@@ -63,8 +63,19 @@ describe("abaikit's arguments", () => {
 			json: true,
 		});
 		expect(
-			parseArgs(["new", "app", "--lang", "ts", "--level", "2", "--dir", "/tmp/app", "--abai-import", "abai"]),
-		).toEqual({ verb: "new", name: "app", lang: "ts", level: 2, dir: "/tmp/app", abaiImport: "abai" });
+			parseArgs([
+				"new",
+				"app",
+				"--lang",
+				"ts",
+				"--level",
+				"2",
+				"--dir",
+				"/tmp/app",
+				"--abai-import",
+				"@abaigram/stub",
+			]),
+		).toEqual({ verb: "new", name: "app", lang: "ts", level: 2, dir: "/tmp/app", abaiImport: "@abaigram/stub" });
 		expect(parseArgs(["abaify", "repo", "--level", "4", "--mode", "turns", "--rounds", "7", "--dry-run"])).toEqual({
 			verb: "abaify",
 			repo: "repo",
@@ -131,7 +142,7 @@ describe("abaikit's main", () => {
 });
 
 describe("the hello example", () => {
-	// a temporary copy whose `abai` import points at the stub's source, so no build is needed and nothing is
+	// a temporary copy whose `@abaigram/stub` import points at the stub's source, so no build is needed and nothing is
 	// written into the checked-in example
 	const copyHello = (): string => {
 		const copy = mkdtempSync(join(tmpdir(), "abaikit-hello-"));
@@ -140,7 +151,10 @@ describe("the hello example", () => {
 		const program = join(copy, "hello.ts");
 		writeFileSync(
 			program,
-			readFileSync(program, "utf8").replace('from "abai"', `from "${resolve(root, "../abai/src/index.ts")}"`),
+			readFileSync(program, "utf8").replace(
+				'from "@abaigram/stub"',
+				`from "${resolve(root, "../abai/src/index.ts")}"`,
+			),
 		);
 		return copy;
 	};

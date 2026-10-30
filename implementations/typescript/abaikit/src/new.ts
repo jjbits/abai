@@ -5,7 +5,7 @@
 // the level. Only TypeScript so far.
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { buildManifest, renderManifestYaml } from "abai";
+import { buildManifest, renderManifestYaml } from "@abaigram/stub";
 import type { ParsedArgs } from "./bin.ts";
 import { type AbaikitIo, UsageError } from "./io.ts";
 import { packageSpecs } from "./learnabai.ts";
@@ -45,7 +45,7 @@ export function createProject(options: NewOptions): NewResult {
 	const input = {
 		name: options.name,
 		level: level as Level,
-		abaiImport: options.abaiImport ?? "abai",
+		abaiImport: options.abaiImport ?? "@abaigram/stub",
 		packages: { ...specs.dependency, fromWorkspace: specs.fromWorkspace, built: specs.built },
 	};
 	const files = templateFiles(input);

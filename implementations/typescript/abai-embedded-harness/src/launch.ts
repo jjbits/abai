@@ -19,7 +19,7 @@ import {
 	MAX_SOCKET_PATH_BYTES,
 	type SubscriptionFilter,
 	shortSocketPath,
-} from "abai";
+} from "@abaigram/stub";
 import type { Harness, Launcher, LaunchState } from "./harness.ts";
 import { TransportCallError } from "./transport.ts";
 import { SocketTransport } from "./transport-socket.ts";

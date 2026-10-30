@@ -4,7 +4,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { ABAI_STUB_VERSION, SIDECAR_DEVIATION } from "abai";
+import { ABAI_STUB_VERSION, SIDECAR_DEVIATION } from "@abaigram/stub";
 import { afterEach, describe, expect, test } from "vitest";
 import { createAbaikit } from "../src/abaigram.ts";
 import { type AbaikitIo, main, parseArgs } from "../src/bin.ts";
@@ -146,25 +146,32 @@ describe("where the packages come from", () => {
 		const base = join(dir, parent);
 		const kit = join(base, "abaikit");
 		mkdirSync(kit, { recursive: true });
-		writeFileSync(join(kit, "package.json"), JSON.stringify({ name: "abaikit" }));
+		writeFileSync(join(kit, "package.json"), JSON.stringify({ name: "@abaigram/abaikit" }));
 		if (workspaces) writeFileSync(join(base, "package.json"), JSON.stringify({ name: "ws", workspaces }));
 		if (siblings) {
-			for (const name of ["abai", "abai-embedded-harness"]) {
+			for (const [name, pkgName] of [
+				["abai", "@abaigram/stub"],
+				["abai-embedded-harness", "@abaigram/embedded-harness"],
+			]) {
 				mkdirSync(join(base, name, "dist"), { recursive: true });
-				writeFileSync(join(base, name, "package.json"), JSON.stringify({ name }));
+				writeFileSync(join(base, name, "package.json"), JSON.stringify({ name: pkgName }));
 				if (built) writeFileSync(join(base, name, "dist", "index.js"), "");
 			}
 		}
 		return kit;
 	}
 
-	test("hoisted siblings under node_modules are not the workspace; a workspace root names abaikit", () => {
+	test("an install under node_modules is not the workspace; a workspace root names abaikit", () => {
 		const dir = mkdtempSync(join(tmpdir(), "learnabai-layout-"));
 		dirs.push(dir);
+		// the real layout: node_modules/@abaigram/abaikit, whose parent has no package.json
+		const installed = packageSpecs(layout(dir, join("node_modules", "@abaigram"), true, true));
+		expect(installed.fromWorkspace).toBe(false);
+		expect(installed.abai).toMatch(/^@abaigram\/stub@\^\d/);
+		expect(installed.harness).toMatch(/^@abaigram\/embedded-harness@\^\d/);
+		// hoisted siblings directly under node_modules, the old layout, are not the workspace either
 		const hoisted = packageSpecs(layout(dir, "node_modules", true, true));
 		expect(hoisted.fromWorkspace).toBe(false);
-		expect(hoisted.abai).toMatch(/^abai@\^\d/);
-		expect(hoisted.harness).toMatch(/^abai-embedded-harness@\^\d/);
 		const unlisted = packageSpecs(layout(dir, "elsewhere", true, true, ["other"]));
 		expect(unlisted.fromWorkspace).toBe(false);
 		const unbuilt = packageSpecs(layout(dir, "ws", true, false, ["abai", "abaikit"]));
@@ -186,7 +193,7 @@ describe("where the packages come from", () => {
 		expect(unbuilt.text).toContain("not built yet: run `npm run build`");
 		const published = loadGuide(guideFile, layout(dir, "node_modules", true, true));
 		expect(published.text).not.toContain("workspace");
-		expect(published.text).toContain("npm install abai@^");
+		expect(published.text).toContain("npm install @abaigram/stub@^");
 	});
 });
 

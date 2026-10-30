@@ -3,9 +3,9 @@
 	"compilerOptions": {
 		"noEmit": true,
 		"paths": {
-			"abai": ["./abai/src/index.ts"],
-			"abai-embedded-harness": ["./abai-embedded-harness/src/index.ts"],
-			"abaikit": ["./abaikit/src/index.ts"]
+			"@abaigram/stub": ["./abai/src/index.ts"],
+			"@abaigram/embedded-harness": ["./abai-embedded-harness/src/index.ts"],
+			"@abaigram/abaikit": ["./abaikit/src/index.ts"]
 		}
 	},
 	"include": ["*/src/**/*.ts", "*/test/**/*.ts", "*/examples/**/*.ts", "vitest.base.ts", "*/vitest.config.ts"],
