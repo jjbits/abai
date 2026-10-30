@@ -1,6 +1,6 @@
 # The arena server with everything it spawns: the TypeScript workspace built
-# from source with its vendored tarballs, the ornithopter program, and the
-# arena itself. Built from the repository root as the context.
+# from source, the ornithopter program, and the arena itself. Built from the
+# repository root as the context.
 FROM node:22-bookworm-slim
 
 WORKDIR /app

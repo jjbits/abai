@@ -24,7 +24,8 @@ abaigram.
 - `implementations/typescript/`: the TypeScript implementation, an npm
   workspace of three packages.
   - `abai/`: the stub, the library a program includes.
-  - `abai-embedded-harness/`: the harness, the agent runtime.
+  - `abai-embedded-harness/`: the harness, the agent runtime, based on the
+    open source [pi](https://github.com/earendil-works/pi) harness.
   - `abaikit/`: the authoring tool, itself an abaigram. Its guide for
     coding agents is `abaikit/abai/learnabai.md`.
 - `examples/ornithopter/`: the example game, an abaigram your coding
@@ -176,6 +177,9 @@ ending in a command that proves it:
 > Make my program at <path> an abaigram.
 > Make a new abaigram called <name>.
 ```
+
+The three packages are on npm as `abai`, `abai-embedded-harness` and
+`abaikit`.
 
 ## ⚠️ A note on security
 

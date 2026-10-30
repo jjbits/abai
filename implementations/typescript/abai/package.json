@@ -2,6 +2,11 @@
 	"name": "abai",
 	"version": "0.1.0",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jjbits/abai.git",
+		"directory": "implementations/typescript/abai"
+	},
 	"description": "The abai stub: the library a TypeScript program includes to become an abaigram",
 	"type": "module",
 	"main": "./dist/index.js",

@@ -2,6 +2,11 @@
 	"name": "abaikit",
 	"version": "0.1.0",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jjbits/abai.git",
+		"directory": "implementations/typescript/abaikit"
+	},
 	"description": "The abai authoring tool: learnabai, check, new, abaify and run; itself an abaigram",
 	"type": "module",
 	"main": "./dist/index.js",
@@ -24,8 +29,8 @@
 		"test": "vitest --run"
 	},
 	"dependencies": {
-		"abai": "*",
-		"abai-embedded-harness": "*"
+		"abai": "0.1.0",
+		"abai-embedded-harness": "0.1.0"
 	},
 	"engines": {
 		"node": ">=22.19.0"

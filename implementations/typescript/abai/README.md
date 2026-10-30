@@ -1,7 +1,8 @@
 # abai (TypeScript stub)
 
 The library a TypeScript program includes to become an abaigram: the
-program side of `spec/abaigrammar.md`. Declarations in code become the
+program side of the contract, `spec/abaigrammar.md` in the
+[abai repository](https://github.com/jjbits/abai). Declarations in code become the
 manifest; cells, events, capabilities, decisions, turns and safepoints are
 the program's end of the five channels; `<prog> abai manifest | doctor`
 is the stub's part of the standard entry.
@@ -17,6 +18,5 @@ depth.set(3);                                     // one store
 await app.decide("on_backlog", { depth: 3 });     // the default, until a harness attaches
 ```
 
-`examples/counter/` is the smallest abaigram and the test subject. The
-measured cost of every detached operation is written to
-`../.design/cost-11.1.md` by the test suite.
+In the repository, `implementations/typescript/abai/examples/counter/` is
+the smallest abaigram and the test subject.
