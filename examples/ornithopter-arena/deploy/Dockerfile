@@ -1,19 +1,11 @@
-# The arena server with everything it spawns: the TypeScript workspace built
-# from source, the ornithopter program, and the arena itself. Built from the
-# repository root as the context.
+# The arena server with everything it spawns: the ornithopter program and the
+# arena itself; the abai packages come from npm.
 FROM node:22-bookworm-slim
 
 WORKDIR /app
 ENV NODE_ENV=production
 
-# the workspace: the stub, the harness and abaikit, built
-COPY implementations/typescript ./implementations/typescript
-RUN cd implementations/typescript \
-	&& npm ci --no-audit --no-fund --include=dev \
-	&& npm run build \
-	&& npm prune --omit=dev --no-audit --no-fund
-
-# the two example packages, linked to the workspace by their file: paths
+# the two example packages; the arena links the game by its file: path
 COPY examples/ornithopter ./examples/ornithopter
 COPY examples/ornithopter-arena ./examples/ornithopter-arena
 RUN cd examples/ornithopter && npm ci --no-audit --no-fund --omit=dev \

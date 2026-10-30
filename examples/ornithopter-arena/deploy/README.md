@@ -20,6 +20,14 @@ rsync -a --delete --exclude node_modules --exclude dist --exclude .git \
 ssh hetzner-direct 'cd /srv/ornithopter && docker compose -f src/examples/ornithopter-arena/deploy/docker-compose.yml up -d --build'
 ```
 
+The image installs the stub, the harness and the arx-06 packages from
+npm at build time (`examples/ornithopter/package-lock.json` and
+`examples/ornithopter-arena/package-lock.json` pin the versions), so a
+change to the stub or the harness reaches the arena only after a publish
+and a bump of those two lockfiles, to the same version, together; a
+change to the game or the arena
+itself deploys from this tree as above.
+
 The first deploy also installs the vhost:
 
 ```

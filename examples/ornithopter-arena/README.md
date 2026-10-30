@@ -14,7 +14,7 @@ shell. The arena only holds positions, judges collisions, mints sessions
 and serves the page.
 
 ```
-npm install                     # links the game and the harness from the checkout
+npm install                     # links the game from ../ornithopter; the harness and the stub come from npm
 node src/main.ts                # the arena on 127.0.0.1:8093, run directories under /tmp/orni
 npm test                        # the suite, including two real ships colliding
 ```

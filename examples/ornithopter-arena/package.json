@@ -10,7 +10,7 @@
     "test": "vitest --run"
   },
   "dependencies": {
-    "@abaigram/abai-embedded-harness": "file:../../implementations/typescript/abai-embedded-harness",
+    "@abaigram/abai-embedded-harness": "^0.1.0",
     "ornithopter": "file:../ornithopter",
     "three": "0.169.0"
   },
