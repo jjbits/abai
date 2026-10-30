@@ -4,7 +4,7 @@
 // manifest's entry, a command line run by the shell in the root.
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { MANIFEST_FILE, type Manifest, parseManifestYaml, validateManifest } from "@abaigram/stub";
+import { MANIFEST_FILE, type Manifest, parseManifestYaml, validateManifest } from "@abaigram/abai-stub";
 import { UsageError } from "./io.ts";
 
 export interface Subject {

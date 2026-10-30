@@ -3,7 +3,7 @@
 // registers them with the agent loop; the MCP form lists them as MCP tools.
 // A tool returns text and throws on failure. Ported from arx-06-0 and
 // generalized: decisions and targets are the manifest's, not arx's.
-import type { Consent } from "@abaigram/stub";
+import type { Consent } from "@abaigram/abai-stub";
 import { type Static, type TSchema, Type } from "typebox";
 import type { Harness } from "./harness.ts";
 import { WATCH_OPS } from "./scheduler.ts";

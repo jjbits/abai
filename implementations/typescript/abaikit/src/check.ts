@@ -9,8 +9,8 @@
 // runs get neither. A level is the one reached under every checked mode,
 // and passing means that level with no violation.
 import { readFileSync } from "node:fs";
-import type { Abaigram, DoctorCheck, Manifest, Mode } from "@abaigram/stub";
-import { parseManifestYaml, validateManifest } from "@abaigram/stub";
+import type { Abaigram, DoctorCheck, Manifest, Mode } from "@abaigram/abai-stub";
+import { parseManifestYaml, validateManifest } from "@abaigram/abai-stub";
 import type { ParsedArgs } from "./bin.ts";
 import {
 	type CommandRun,

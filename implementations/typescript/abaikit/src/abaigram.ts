@@ -5,7 +5,7 @@
 // capability is dispatched at once: a command-line tool has no hot loop
 // reaching safepoints, and its handlers are I/O-bound.
 import { resolve } from "node:path";
-import { type Abaigram, type AbaigramExtras, type CapabilityHandler, createAbaigram } from "@abaigram/stub";
+import { type Abaigram, type AbaigramExtras, type CapabilityHandler, createAbaigram } from "@abaigram/abai-stub";
 
 export type Handler = CapabilityHandler;
 
@@ -143,7 +143,7 @@ export function createAbaikit(handlers: AbaikitHandlers = {}, extras: AbaigramEx
 					dispatch: "immediate",
 					effect: "mutate",
 					policy: "confirm",
-					doc: "Add a dependency to the repository's package.json in sorted place (the file is re-serialized, keys and indentation kept); the spec defaults to how abaikit reaches @abaigram/stub, @abaigram/embedded-harness and @abaigram/abaikit.",
+					doc: "Add a dependency to the repository's package.json in sorted place (the file is re-serialized, keys and indentation kept); the spec defaults to how abaikit reaches @abaigram/abai-stub, @abaigram/abai-embedded-harness and @abaigram/abaikit.",
 					handler: handlers.repoAddDependency ?? notYet("repo.add_dependency"),
 				},
 				"repo.manifest": {

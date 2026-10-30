@@ -8,7 +8,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { descriptorPath, validateManifest } from "@abaigram/stub";
+import { descriptorPath, validateManifest } from "@abaigram/abai-stub";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Harness } from "../src/harness.ts";
 import { defaultOptions } from "../src/options.ts";

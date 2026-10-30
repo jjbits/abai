@@ -176,7 +176,7 @@ capabilities:
     dispatch: immediate
     effect: mutate
     policy: confirm
-    doc: Add a dependency to the repository's package.json in sorted place (the file is re-serialized, keys and indentation kept); the spec defaults to how abaikit reaches @abaigram/stub, @abaigram/embedded-harness and @abaigram/abaikit.
+    doc: Add a dependency to the repository's package.json in sorted place (the file is re-serialized, keys and indentation kept); the spec defaults to how abaikit reaches @abaigram/abai-stub, @abaigram/abai-embedded-harness and @abaigram/abaikit.
     timeout: 30s
   - name: repo.manifest
     params:

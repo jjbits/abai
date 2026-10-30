@@ -3,7 +3,7 @@
 // it is handed one. Two bindings exist: direct, in-process, over the stub's
 // HarnessBinding (turns and thread modes), and socket, over wire protocol
 // v1 (sidecar mode). Both carry the same meaning for every channel.
-import type { Consent, Manifest } from "@abaigram/stub";
+import type { Consent, Manifest } from "@abaigram/abai-stub";
 
 export interface TransportHello {
 	name: string;

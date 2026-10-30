@@ -26,7 +26,7 @@ import {
 	type WireConsent,
 	type WireDescriptor,
 	type WireResponse,
-} from "@abaigram/stub";
+} from "@abaigram/abai-stub";
 
 /** A socket path, a pid, or undefined for "the one running program". */
 export type ConnectTarget = string | number | undefined;

@@ -1,7 +1,7 @@
 // The harness's attention machinery (abaigrammar section 5.6): the transcript
 // ring, the wake scheduler with its budget, watches, timers, and the decision
 // summaries and answer checks. Pure: no transport, no model.
-import { type DecisionDecl, schemaProblem } from "@abaigram/stub";
+import { type DecisionDecl, schemaProblem } from "@abaigram/abai-stub";
 
 export type WakeSource =
 	| "event"

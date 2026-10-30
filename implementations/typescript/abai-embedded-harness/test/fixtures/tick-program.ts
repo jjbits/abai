@@ -6,7 +6,7 @@
 // declares a stop handler, which ends it; `stop-ignored` declares a handler
 // that does nothing; `forbid` forbids stop by policy; `coop` declares a
 // cooperative pause and gives a turn on every tick.
-import { createAbaigram } from "../../../abai/src/index.ts";
+import { createAbaigram } from "../../../abai-stub/src/index.ts";
 
 const what = process.argv[2] ?? "forever";
 const app = createAbaigram(

@@ -8,7 +8,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, join, resolve } from "node:path";
-import { ABAI_STUB_VERSION, ABAIGRAMMAR_VERSION, INSTANTIATION_DEVIATIONS, SIDECAR_DEVIATION } from "@abaigram/stub";
+import {
+	ABAI_STUB_VERSION,
+	ABAIGRAMMAR_VERSION,
+	INSTANTIATION_DEVIATIONS,
+	SIDECAR_DEVIATION,
+} from "@abaigram/abai-stub";
 import { PACKAGE_ROOT } from "./abaigram.ts";
 import type { ParsedArgs } from "./bin.ts";
 import { type AbaikitIo, UsageError } from "./io.ts";
@@ -70,12 +75,12 @@ export function packageSpecs(packageRoot: string = PACKAGE_ROOT): PackageSpecs {
 	const root = readPackage(workspace);
 	const workspaces = Array.isArray(root?.workspaces) ? (root.workspaces as unknown[]) : [];
 	const inWorkspace = basename(workspace) !== "node_modules" && workspaces.includes(basename(packageRoot));
-	const abai = join(workspace, "abai");
+	const abai = join(workspace, "abai-stub");
 	const harness = join(workspace, "abai-embedded-harness");
 	if (
 		inWorkspace &&
-		readPackage(abai)?.name === "@abaigram/stub" &&
-		readPackage(harness)?.name === "@abaigram/embedded-harness"
+		readPackage(abai)?.name === "@abaigram/abai-stub" &&
+		readPackage(harness)?.name === "@abaigram/abai-embedded-harness"
 	) {
 		const built = existsSync(join(abai, "dist", "index.js")) && existsSync(join(harness, "dist", "index.js"));
 		return {
@@ -86,10 +91,10 @@ export function packageSpecs(packageRoot: string = PACKAGE_ROOT): PackageSpecs {
 			built,
 		};
 	}
-	const harnessVersion = (require("@abaigram/embedded-harness/package.json") as { version: string }).version;
+	const harnessVersion = (require("@abaigram/abai-embedded-harness/package.json") as { version: string }).version;
 	return {
-		abai: `@abaigram/stub@^${ABAI_STUB_VERSION}`,
-		harness: `@abaigram/embedded-harness@^${harnessVersion}`,
+		abai: `@abaigram/abai-stub@^${ABAI_STUB_VERSION}`,
+		harness: `@abaigram/abai-embedded-harness@^${harnessVersion}`,
 		dependency: { abai: `^${ABAI_STUB_VERSION}`, harness: `^${harnessVersion}`, abaikit: `^${ABAIKIT_VERSION}` },
 		fromWorkspace: false,
 		built: true,

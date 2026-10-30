@@ -18,7 +18,7 @@ const config = configFrom(
 	{ ARENA_RUN_ROOT: runRoot, ARENA_PORT: "0", ARENA_WRECK_MS: "1500", ARENA_MAX_SESSIONS: "2" },
 	{
 		shipEntry: fileURLToPath(import.meta.resolve("ornithopter/src/main.ts")),
-		harnessBin: fileURLToPath(new URL("./bin.js", import.meta.resolve("@abaigram/embedded-harness"))),
+		harnessBin: fileURLToPath(new URL("./bin.js", import.meta.resolve("@abaigram/abai-embedded-harness"))),
 	},
 );
 const sessions = new Sessions(config, processLauncher({ shipEntry: config.shipEntry, harnessBin: config.harnessBin }));

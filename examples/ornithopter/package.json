@@ -12,8 +12,8 @@
     "test": "vitest --run"
   },
   "dependencies": {
-    "@abaigram/embedded-harness": "file:../../implementations/typescript/abai-embedded-harness",
-    "@abaigram/stub": "file:../../implementations/typescript/abai",
+    "@abaigram/abai-embedded-harness": "file:../../implementations/typescript/abai-embedded-harness",
+    "@abaigram/abai-stub": "file:../../implementations/typescript/abai-stub",
     "three": "0.169.0"
   },
   "devDependencies": {

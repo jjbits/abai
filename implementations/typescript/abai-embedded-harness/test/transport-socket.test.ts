@@ -12,7 +12,7 @@ import {
 	type Manifest,
 	PROTOCOL_VERSION,
 	writeDescriptor,
-} from "@abaigram/stub";
+} from "@abaigram/abai-stub";
 import { afterEach, describe, expect, test } from "vitest";
 import { Harness } from "../src/harness.ts";
 import { defaultOptions } from "../src/options.ts";

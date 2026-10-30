@@ -1,9 +1,9 @@
 // The attention machinery without a program: the transcript ring, the wake
 // scheduler (coalescing, budget, folding, decisions exempt), the watch
 // operators, decision summaries and answer validation.
-import type { DecisionDecl } from "@abaigram/stub";
+import type { DecisionDecl } from "@abaigram/abai-stub";
 import { describe, expect, test } from "vitest";
-import { FIXTURE_MANIFEST } from "../../abai/test/fixtures/manifest.ts";
+import { FIXTURE_MANIFEST } from "../../abai-stub/test/fixtures/manifest.ts";
 import {
 	MAX_DELIVERY_LINES,
 	MAX_WAKE_LINES,

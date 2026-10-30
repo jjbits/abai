@@ -5,7 +5,7 @@
 // the exit code.
 import { createInterface } from "node:readline";
 import { Writable } from "node:stream";
-import type { Manifest } from "@abaigram/stub";
+import type { Manifest } from "@abaigram/abai-stub";
 import type { Credential } from "@arx-06/ai";
 import { type AbaiConfig, abaiHome, FileCredentialStore, readConfig, writeConfig } from "./config.ts";
 import { createModelSetup, FREETOKEN_PROVIDER_ID, ModelNotConfigured, resolveConfiguredModel } from "./model/index.ts";

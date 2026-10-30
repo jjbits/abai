@@ -5,7 +5,7 @@
 // it must not do: take off again on a nearly drained ship, slow into a
 // stall, fly at the storm wall until warned, then into the nearest spire;
 // then reset. Between them every declared event and cell is exercised.
-import type { Abaigram } from "@abaigram/stub";
+import type { Abaigram } from "@abaigram/abai-stub";
 import type { Channels } from "./channels.ts";
 import { wrap360 } from "./math.ts";
 import type { Sim, SimEvent } from "./sim.ts";

@@ -2,7 +2,7 @@
 // identity and the manifest, marks what the options change, and is
 // byte-stable.
 import { describe, expect, test } from "vitest";
-import { FIXTURE_MANIFEST } from "../../abai/test/fixtures/manifest.ts";
+import { FIXTURE_MANIFEST } from "../../abai-stub/test/fixtures/manifest.ts";
 import { type ComposeInput, composeInstructions, composeSystemPrompt } from "../src/prompt.ts";
 
 const IDENTITY = [

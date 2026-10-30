@@ -73,9 +73,9 @@ describe("abaikit's arguments", () => {
 				"--dir",
 				"/tmp/app",
 				"--abai-import",
-				"@abaigram/stub",
+				"@abaigram/abai-stub",
 			]),
-		).toEqual({ verb: "new", name: "app", lang: "ts", level: 2, dir: "/tmp/app", abaiImport: "@abaigram/stub" });
+		).toEqual({ verb: "new", name: "app", lang: "ts", level: 2, dir: "/tmp/app", abaiImport: "@abaigram/abai-stub" });
 		expect(parseArgs(["abaify", "repo", "--level", "4", "--mode", "turns", "--rounds", "7", "--dry-run"])).toEqual({
 			verb: "abaify",
 			repo: "repo",
@@ -142,7 +142,7 @@ describe("abaikit's main", () => {
 });
 
 describe("the hello example", () => {
-	// a temporary copy whose `@abaigram/stub` import points at the stub's source, so no build is needed and nothing is
+	// a temporary copy whose `@abaigram/abai-stub` import points at the stub's source, so no build is needed and nothing is
 	// written into the checked-in example
 	const copyHello = (): string => {
 		const copy = mkdtempSync(join(tmpdir(), "abaikit-hello-"));
@@ -152,8 +152,8 @@ describe("the hello example", () => {
 		writeFileSync(
 			program,
 			readFileSync(program, "utf8").replace(
-				'from "@abaigram/stub"',
-				`from "${resolve(root, "../abai/src/index.ts")}"`,
+				'from "@abaigram/abai-stub"',
+				`from "${resolve(root, "../abai-stub/src/index.ts")}"`,
 			),
 		);
 		return copy;

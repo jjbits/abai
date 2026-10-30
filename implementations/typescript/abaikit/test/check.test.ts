@@ -14,9 +14,9 @@ import { type CheckReport, checkHandler } from "../src/check.ts";
 import { lastJsonLine, median, subjectEnv } from "../src/command.ts";
 
 const root = resolve(import.meta.dirname, "..");
-const counterExample = resolve(root, "../abai/examples/counter");
+const counterExample = resolve(root, "../abai-stub/examples/counter");
 const helloExample = join(root, "examples/hello");
-const stubSrc = resolve(root, "../abai/src");
+const stubSrc = resolve(root, "../abai-stub/src");
 const dirs: string[] = [];
 afterEach(() => {
 	for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
@@ -53,7 +53,10 @@ function copyHello(dir: string): string {
 	const copy = join(dir, "hello");
 	cpSync(helloExample, copy, { recursive: true });
 	const program = join(copy, "hello.ts");
-	writeFileSync(program, readFileSync(program, "utf8").replace('from "@abaigram/stub"', `from "${stubSrc}/index.ts"`));
+	writeFileSync(
+		program,
+		readFileSync(program, "utf8").replace('from "@abaigram/abai-stub"', `from "${stubSrc}/index.ts"`),
+	);
 	return copy;
 }
 

@@ -22,7 +22,7 @@ import {
 const root = resolve(import.meta.dirname, "..");
 const plainCli = join(root, "test/fixtures/plain-cli");
 const hello = join(root, "examples/hello");
-const stubIndex = resolve(root, "../abai/src/index.ts");
+const stubIndex = resolve(root, "../abai-stub/src/index.ts");
 const dirs: string[] = [];
 afterEach(() => {
 	for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
@@ -168,21 +168,27 @@ describe("adding", () => {
 			file,
 			'{\n\t"name": "plain-cli",\n\t"type": "module",\n\t"scripts": { "start": "node src/main.js" }\n}\n',
 		);
-		const added = addDependency(ctx, repo, "@abaigram/stub", undefined, "the stub");
+		const added = addDependency(ctx, repo, "@abaigram/abai-stub", undefined, "the stub");
 		expect(added.added).toBe(true);
-		expect(added.spec).toMatch(/^file:.*\/abai$/);
+		expect(added.spec).toMatch(/^file:.*\/abai-stub$/);
 		const text = readFileSync(file, "utf8");
 		expect(text.startsWith('{\n\t"name"')).toBe(true);
 		expect(text.endsWith("\n")).toBe(true);
 		expect(JSON.parse(text)).toMatchObject({
 			scripts: { start: "node src/main.js" },
-			dependencies: { "@abaigram/stub": added.spec },
+			dependencies: { "@abaigram/abai-stub": added.spec },
 		});
-		expect(addDependency(ctx, repo, "@abaigram/stub", "^9.9.9", "again")).toEqual({ spec: added.spec, added: false });
+		expect(addDependency(ctx, repo, "@abaigram/abai-stub", "^9.9.9", "again")).toEqual({
+			spec: added.spec,
+			added: false,
+		});
 		expect(() => addDependency(ctx, repo, "left-pad", undefined, "why")).toThrow(/needs a spec/);
 		expect(addDependency(ctx, repo, "left-pad", "^1.0.0", "why").added).toBe(true);
 		// sorted place, and a CRLF file stays CRLF
-		expect(Object.keys(JSON.parse(readFileSync(file, "utf8")).dependencies)).toEqual(["@abaigram/stub", "left-pad"]);
+		expect(Object.keys(JSON.parse(readFileSync(file, "utf8")).dependencies)).toEqual([
+			"@abaigram/abai-stub",
+			"left-pad",
+		]);
 		writeFileSync(file, '{\r\n  "name": "crlf",\r\n  "dependencies": { "zeta": "1" }\r\n}\r\n');
 		addDependency(ctx, repo, "alpha", "2", "why");
 		const crlf = readFileSync(file, "utf8");
@@ -225,7 +231,10 @@ describe("adding", () => {
 	test("manifest runs the entry and writes abaigram.yaml; a dry run writes nothing and says what it would", async () => {
 		const { repo, ctx } = copy(hello, "repo-manifest-");
 		const program = join(repo, "hello.ts");
-		writeFileSync(program, readFileSync(program, "utf8").replace('from "@abaigram/stub"', `from "${stubIndex}"`));
+		writeFileSync(
+			program,
+			readFileSync(program, "utf8").replace('from "@abaigram/abai-stub"', `from "${stubIndex}"`),
+		);
 		const expected = readFileSync(join(repo, "abaigram.yaml"), "utf8");
 		rmSync(join(repo, "abaigram.yaml"));
 		const result = await regenerateManifest(ctx, repo, "node hello.ts abai", "the manifest");

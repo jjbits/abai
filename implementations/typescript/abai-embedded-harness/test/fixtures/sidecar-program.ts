@@ -2,7 +2,7 @@
 // ABAI_MODE=sidecar, driven by one-word commands on stdin, reporting on
 // stdout. The stub is imported from source so no build is needed.
 import { createInterface } from "node:readline";
-import { createAbaigram } from "../../../abai/src/index.ts";
+import { createAbaigram } from "../../../abai-stub/src/index.ts";
 
 const app = createAbaigram(
 	{

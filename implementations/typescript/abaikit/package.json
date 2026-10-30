@@ -32,8 +32,8 @@
 		"test": "vitest --run"
 	},
 	"dependencies": {
-		"@abaigram/embedded-harness": "0.1.0",
-		"@abaigram/stub": "0.1.0"
+		"@abaigram/abai-embedded-harness": "0.1.0",
+		"@abaigram/abai-stub": "0.1.0"
 	},
 	"engines": {
 		"node": ">=22.19.0"

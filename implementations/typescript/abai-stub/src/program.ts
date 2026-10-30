@@ -749,11 +749,11 @@ export class Abaigram {
 					const factory =
 						this.harnessFactory ??
 						(await installedHarness(
-							this.env[ENV_HARNESS_MODULE] || this.manifest.harness?.path || "@abaigram/embedded-harness",
+							this.env[ENV_HARNESS_MODULE] || this.manifest.harness?.path || "@abaigram/abai-embedded-harness",
 						));
 					if (factory === undefined) {
 						this.lastAttachError =
-							"no harness is installed (the @abaigram/embedded-harness package is not resolvable)";
+							"no harness is installed (the @abaigram/abai-embedded-harness package is not resolvable)";
 						return false;
 					}
 					const binding = this.createBinding();
@@ -969,7 +969,7 @@ export async function importHarnessModule(
 	env: NodeJS.ProcessEnv,
 	manifest: Manifest,
 ): Promise<HarnessModule | undefined> {
-	const specifier = env[ENV_HARNESS_MODULE] || manifest.harness?.path || "@abaigram/embedded-harness";
+	const specifier = env[ENV_HARNESS_MODULE] || manifest.harness?.path || "@abaigram/abai-embedded-harness";
 	try {
 		return (await import(specifier)) as HarnessModule;
 	} catch {

@@ -6,8 +6,8 @@
 // and it carries no model: the front end runs the agent that calls its
 // tools. Ported from arx-06-0's harness core and generalized: decisions
 // are the manifest's, not a fixed hook list.
-import type { CapabilityDecl, Consent, DecisionDecl, Manifest } from "@abaigram/stub";
-import { durationMs, validateManifest } from "@abaigram/stub";
+import type { CapabilityDecl, Consent, DecisionDecl, Manifest } from "@abaigram/abai-stub";
+import { durationMs, validateManifest } from "@abaigram/abai-stub";
 import type { HarnessOptions } from "./options.ts";
 import { composeInstructions, composeSystemPrompt } from "./prompt.ts";
 import {

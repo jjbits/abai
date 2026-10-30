@@ -5,7 +5,7 @@
 //   node examples/hello/hello.ts abai doctor
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createAbaigram, runEntry } from "@abaigram/stub";
+import { createAbaigram, runEntry } from "@abaigram/abai-stub";
 
 const app = createAbaigram(
 	{ name: "hello", entry: "node hello.ts abai", modes: ["turns"], audit: { path: "./abai-audit.log" } },

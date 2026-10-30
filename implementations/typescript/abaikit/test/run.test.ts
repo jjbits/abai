@@ -8,8 +8,8 @@ import { afterEach, describe, expect, test } from "vitest";
 import { type AbaikitIo, main } from "../src/bin.ts";
 import { entryCommand, findSubjectRoot, shellQuote } from "../src/subject.ts";
 
-const counterExample = resolve(import.meta.dirname, "../../abai/examples/counter");
-const stubSrc = resolve(import.meta.dirname, "../../abai/src");
+const counterExample = resolve(import.meta.dirname, "../../abai-stub/examples/counter");
+const stubSrc = resolve(import.meta.dirname, "../../abai-stub/src");
 const dirs: string[] = [];
 afterEach(() => {
 	for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });

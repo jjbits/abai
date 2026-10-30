@@ -14,7 +14,7 @@ import { subjectEnv } from "../src/command.ts";
 
 const root = resolve(import.meta.dirname, "..");
 const plainCli = join(root, "test/fixtures/plain-cli");
-const stubIndex = resolve(root, "../abai/src/index.ts");
+const stubIndex = resolve(root, "../abai-stub/src/index.ts");
 const dirs: string[] = [];
 afterEach(() => {
 	for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
@@ -75,7 +75,7 @@ function retrofit(repo: string) {
 	return [
 		call("repo.list", { repo }),
 		call("repo.read", { repo, path: "src/main.js" }),
-		call("repo.add_dependency", { repo, name: "@abaigram/stub", why: "the stub" }),
+		call("repo.add_dependency", { repo, name: "@abaigram/abai-stub", why: "the stub" }),
 		call("repo.write", { repo, path: "src/abai.mjs", content: declaration, why: "the declaration module" }),
 		call("repo.insert", {
 			repo,
@@ -116,15 +116,15 @@ describe("abaify", () => {
 		expect(existsSync(join(w.repo, "src/abai.mjs"))).toBe(true);
 		expect(existsSync(join(w.repo, "abaigram.yaml"))).toBe(true);
 		expect(readFileSync(join(w.repo, "src/main.js"), "utf8")).toContain("const abaiCode = await runEntry");
-		expect(JSON.parse(readFileSync(join(w.repo, "package.json"), "utf8")).dependencies["@abaigram/stub"]).toMatch(
-			/^file:/,
-		);
+		expect(
+			JSON.parse(readFileSync(join(w.repo, "package.json"), "utf8")).dependencies["@abaigram/abai-stub"],
+		).toMatch(/^file:/);
 		const report = readFileSync(join(w.repo, "abai/abaify-report.md"), "utf8");
 		expect(report).toMatch(/^# abaify report: .* \(run 1, /m);
 		expect(report).toContain("Requested level 1; reached level 1; passed after 1 round");
 		expect(report).toContain("## Added (new files and inserted lines");
 		expect(report).toMatch(
-			/## Rewritten in place by a structured tool\n\n- add_dependency package\.json: @abaigram\/stub: file:/,
+			/## Rewritten in place by a structured tool\n\n- add_dependency package\.json: @abaigram\/abai-stub: file:/,
 		);
 		expect(report).toMatch(/- write src\/abai.mjs: \d+ lines. Why: the declaration module/);
 		expect(report).toMatch(/- insert src\/main.js: 4 lines before line \d+. Why: the entry hook/);

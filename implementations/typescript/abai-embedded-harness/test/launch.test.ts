@@ -17,8 +17,8 @@ import { SocketTransport } from "../src/transport-socket.ts";
 import { scriptedChannel } from "../src/user-channel.ts";
 
 const tick = resolve(import.meta.dirname, "fixtures/tick-program.ts");
-const counterExample = resolve(import.meta.dirname, "../../abai/examples/counter");
-const stubSrc = resolve(import.meta.dirname, "../../abai/src");
+const counterExample = resolve(import.meta.dirname, "../../abai-stub/examples/counter");
+const stubSrc = resolve(import.meta.dirname, "../../abai-stub/src");
 
 /** A copy of the counter example in `dir`, so its audit log lands there and not in the checked-in example. */
 function copyCounter(dir: string): string {

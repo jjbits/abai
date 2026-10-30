@@ -5,7 +5,7 @@
 // loop, with the model from the machine configuration unless the caller
 // supplies one. Attaching fails at once, without contacting any model,
 // when none is configured (section 4.3).
-import type { HarnessBinding } from "@abaigram/stub";
+import type { HarnessBinding } from "@abaigram/abai-stub";
 import { type AgentModel, SessionForm } from "./agent.ts";
 import { abaiHome, readConfig } from "./config.ts";
 import { Harness } from "./harness.ts";

@@ -14,7 +14,7 @@ import type {
 	SubscriptionFilter,
 	WireErrorCode,
 	WireResponse,
-} from "@abaigram/stub";
+} from "@abaigram/abai-stub";
 import { ATTACH_REQUEST_TIMEOUT_MS, POLL_REQUEST_TIMEOUT_MS } from "./scheduler.ts";
 import type {
 	AuditData,

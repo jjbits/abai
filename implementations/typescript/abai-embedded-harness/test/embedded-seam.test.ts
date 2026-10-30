@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 import { afterEach, beforeAll, expect, test } from "vitest";
 
 const workspace = resolve(import.meta.dirname, "../..");
-const example = resolve(workspace, "abai/examples/counter");
+const example = resolve(workspace, "abai-stub/examples/counter");
 const dirs: string[] = [];
 
 // the stub reaches the harness through the packages' real exports, which point at dist: build once
@@ -18,14 +18,14 @@ afterEach(() => {
 });
 
 test("a program with the harness installed but no model attaches nothing, with the reason (through the built packages)", () => {
-	// the copy lives inside the workspace so the bare import of @abaigram/embedded-harness resolves
+	// the copy lives inside the workspace so the bare import of @abaigram/abai-embedded-harness resolves
 	const copy = mkdtempSync(join(resolve(import.meta.dirname, ".."), "tmp-seam-"));
 	dirs.push(copy);
 	cpSync(example, copy, { recursive: true });
 	const program = join(copy, "counter.ts");
 	writeFileSync(
 		program,
-		readFileSync(program, "utf8").replaceAll("../../src/", `${resolve(import.meta.dirname, "../../abai/src")}/`),
+		readFileSync(program, "utf8").replaceAll("../../src/", `${resolve(import.meta.dirname, "../../abai-stub/src")}/`),
 	);
 	const result = spawnSync(process.execPath, [program, "abai"], {
 		cwd: copy,
@@ -44,7 +44,7 @@ test("the stub delegates config and doctor's online half to the installed harnes
 	const program = join(copy, "counter.ts");
 	writeFileSync(
 		program,
-		readFileSync(program, "utf8").replaceAll("../../src/", `${resolve(import.meta.dirname, "../../abai/src")}/`),
+		readFileSync(program, "utf8").replaceAll("../../src/", `${resolve(import.meta.dirname, "../../abai-stub/src")}/`),
 	);
 	const home = join(copy, "home");
 	const env = { ...process.env, ABAI_MODE: "", ABAI_HARNESS: "", ABAI_HARNESS_MODULE: "", ABAI_HOME: home };
@@ -70,7 +70,7 @@ test("under sidecar the entry spawns the built binary, which fails at once with 
 	const program = join(copy, "counter.ts");
 	writeFileSync(
 		program,
-		readFileSync(program, "utf8").replaceAll("../../src/", `${resolve(import.meta.dirname, "../../abai/src")}/`),
+		readFileSync(program, "utf8").replaceAll("../../src/", `${resolve(import.meta.dirname, "../../abai-stub/src")}/`),
 	);
 	const result = spawnSync(process.execPath, [program, "abai"], {
 		cwd: copy,
@@ -113,7 +113,7 @@ test("the program's own entry serves an MCP client: in-process under turns, thro
 	const program = join(copy, "counter.ts");
 	writeFileSync(
 		program,
-		readFileSync(program, "utf8").replaceAll("../../src/", `${resolve(import.meta.dirname, "../../abai/src")}/`),
+		readFileSync(program, "utf8").replaceAll("../../src/", `${resolve(import.meta.dirname, "../../abai-stub/src")}/`),
 	);
 	const base = {
 		...process.env,
@@ -152,7 +152,7 @@ test("run through the built binary with no model fails at once, with the reason,
 	const program = join(copy, "counter.ts");
 	writeFileSync(
 		program,
-		readFileSync(program, "utf8").replaceAll("../../src/", `${resolve(import.meta.dirname, "../../abai/src")}/`),
+		readFileSync(program, "utf8").replaceAll("../../src/", `${resolve(import.meta.dirname, "../../abai-stub/src")}/`),
 	);
 	const result = spawnSync(process.execPath, [program, "abai", "run", "--", "2"], {
 		cwd: copy,

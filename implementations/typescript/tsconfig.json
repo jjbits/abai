@@ -3,8 +3,8 @@
 	"compilerOptions": {
 		"noEmit": true,
 		"paths": {
-			"@abaigram/stub": ["./abai/src/index.ts"],
-			"@abaigram/embedded-harness": ["./abai-embedded-harness/src/index.ts"],
+			"@abaigram/abai-stub": ["./abai-stub/src/index.ts"],
+			"@abaigram/abai-embedded-harness": ["./abai-embedded-harness/src/index.ts"],
 			"@abaigram/abaikit": ["./abaikit/src/index.ts"]
 		}
 	},

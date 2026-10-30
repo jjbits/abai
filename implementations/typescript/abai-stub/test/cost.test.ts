@@ -137,7 +137,7 @@ describe("section 11.1: cost with no harness attached", () => {
 		const report = [
 			"# Section 11.1 cost, measured",
 			"",
-			`Written by \`abai/test/cost.test.ts\` on ${new Date().toISOString()} (Node ${process.version}, ${process.arch}, ${ITERATIONS} iterations per row).`,
+			`Written by \`abai-stub/test/cost.test.ts\` on ${new Date().toISOString()} (Node ${process.version}, ${process.arch}, ${ITERATIONS} iterations per row).`,
 			"Bytes are heap growth over the loop with no collection in between; the scalar rows are asserted to allocate nothing and to trigger no collection. The sized rows allocate (a declared deviation); a collection during their loop makes their bytes an underestimate.",
 			"",
 			"| Row | ns/op | B/op | collections | allocates |",

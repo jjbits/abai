@@ -17,7 +17,7 @@
 // `confirm` act is stated as `auto` and audited so. Ported in shape from
 // arx-06's harness and generalized: the manifest comes from the attach.
 import type { Readable, Writable } from "node:stream";
-import { attachCappedLineReader } from "@abaigram/stub";
+import { attachCappedLineReader } from "@abaigram/abai-stub";
 import { type JsonObject, validateToolArguments } from "@arx-06/ai";
 import type { Harness } from "./harness.ts";
 import { type HarnessToolSpec, type ToolFront, toolsFor } from "./tools.ts";

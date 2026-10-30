@@ -89,7 +89,7 @@ function parse(argv) {
 
 /** The harness binary beside the installed package's entry. */
 function harnessBin() {
-	return fileURLToPath(new URL("./bin.js", import.meta.resolve("@abaigram/embedded-harness")));
+	return fileURLToPath(new URL("./bin.js", import.meta.resolve("@abaigram/abai-embedded-harness")));
 }
 
 async function main() {
@@ -100,7 +100,7 @@ async function main() {
 		bin = harnessBin();
 	} catch (error) {
 		console.error(
-			`supervise: ${error.code === "ERR_MODULE_NOT_FOUND" ? "the @abaigram/embedded-harness package is not installed here; run npm install in this directory after building the workspace" : error.message}`,
+			`supervise: ${error.code === "ERR_MODULE_NOT_FOUND" ? "the @abaigram/abai-embedded-harness package is not installed here; run npm install in this directory after building the workspace" : error.message}`,
 		);
 		return 2;
 	}

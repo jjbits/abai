@@ -14,7 +14,7 @@ import { newHandler } from "../src/new.ts";
 import { templateFiles } from "../src/template-ts.ts";
 
 const root = resolve(import.meta.dirname, "..");
-const stubIndex = resolve(root, "../abai/src/index.ts");
+const stubIndex = resolve(root, "../abai-stub/src/index.ts");
 const dirs: string[] = [];
 afterEach(() => {
 	for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
@@ -98,12 +98,12 @@ describe("abaikit new", () => {
 			expect(existsSync(join(project, file)), file).toBe(true);
 		}
 		const pkg = JSON.parse(readFileSync(join(project, "package.json"), "utf8"));
-		expect(Object.keys(pkg.dependencies)).toEqual(["@abaigram/embedded-harness", "@abaigram/stub"]);
+		expect(Object.keys(pkg.dependencies)).toEqual(["@abaigram/abai-embedded-harness", "@abaigram/abai-stub"]);
 		// in this checkout the packages are the workspace's, as file: values; abaikit itself is there for npm run check
-		expect(pkg.dependencies["@abaigram/stub"]).toMatch(/^file:/);
+		expect(pkg.dependencies["@abaigram/abai-stub"]).toMatch(/^file:/);
 		expect(pkg.devDependencies["@abaigram/abaikit"]).toMatch(/^file:.*abaikit$/);
 		const declaration = readFileSync(join(project, "src/abai.ts"), "utf8");
-		expect(declaration).toContain('import { createAbaigram } from "@abaigram/stub";');
+		expect(declaration).toContain('import { createAbaigram } from "@abaigram/abai-stub";');
 		for (const kind of ["// cells:", "// events:", "// capabilities:", "// decisions:", "// turns:", "// check:"]) {
 			expect(declaration, kind).toContain(kind);
 		}
@@ -119,11 +119,14 @@ describe("abaikit new", () => {
 		const files = templateFiles({
 			name: "demo",
 			level: 1,
-			abaiImport: "@abaigram/stub",
+			abaiImport: "@abaigram/abai-stub",
 			packages: { abai: "^0.1.0", harness: "^0.1.0", abaikit: "^0.1.0", fromWorkspace: false, built: true },
 		});
 		const pkg = JSON.parse(files["package.json"]);
-		expect(pkg.dependencies).toEqual({ "@abaigram/embedded-harness": "^0.1.0", "@abaigram/stub": "^0.1.0" });
+		expect(pkg.dependencies).toEqual({
+			"@abaigram/abai-embedded-harness": "^0.1.0",
+			"@abaigram/abai-stub": "^0.1.0",
+		});
 		expect(pkg.devDependencies).toEqual({ "@abaigram/abaikit": "^0.1.0" });
 		expect(files["README.md"]).toContain("The packages come from npm");
 	});

@@ -5,13 +5,13 @@
 	"version": "0.1.0",
 	"license": "MIT",
 	"workspaces": [
-		"abai",
+		"abai-stub",
 		"abai-embedded-harness",
 		"abaikit"
 	],
 	"scripts": {
 		"clean": "npm run clean --workspaces --if-present",
-		"build": "npm run build -w abai && npm run build -w abai-embedded-harness && npm run build -w abaikit",
+		"build": "npm run build -w abai-stub && npm run build -w abai-embedded-harness && npm run build -w abaikit",
 		"check": "biome check --write --error-on-warnings . && tsgo --noEmit",
 		"test": "npm run test --workspaces --if-present"
 	},

@@ -1,4 +1,4 @@
-import { ABAI_STUB_VERSION } from "@abaigram/stub";
+import { ABAI_STUB_VERSION } from "@abaigram/abai-stub";
 import { Agent } from "@arx-06/agent";
 import { createModels, fauxAssistantMessage, fauxProvider } from "@arx-06/ai";
 import { anthropicProvider } from "@arx-06/ai/providers/anthropic";

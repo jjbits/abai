@@ -11,7 +11,7 @@ import { realpathSync } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { attachWaitMsFrom, type Manifest, validateManifest } from "@abaigram/stub";
+import { attachWaitMsFrom, type Manifest, validateManifest } from "@abaigram/abai-stub";
 import { SessionForm } from "./agent.ts";
 import { type CliIo, doctorOnline, processIo, runConfig } from "./cli.ts";
 import { abaiHome } from "./config.ts";

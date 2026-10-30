@@ -11,7 +11,7 @@ import { processLauncher } from "./ship.ts";
 
 const config = configFrom(process.env, {
 	shipEntry: fileURLToPath(import.meta.resolve("ornithopter/src/main.ts")),
-	harnessBin: fileURLToPath(new URL("./bin.js", import.meta.resolve("@abaigram/embedded-harness"))),
+	harnessBin: fileURLToPath(new URL("./bin.js", import.meta.resolve("@abaigram/abai-embedded-harness"))),
 });
 mkdirSync(config.runRoot, { recursive: true, mode: 0o700 });
 const world = createWorld({ seed: config.seed });

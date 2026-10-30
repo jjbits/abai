@@ -10,7 +10,7 @@ import {
 	type Manifest,
 	payloadBytes,
 	type Schema,
-} from "@abaigram/stub";
+} from "@abaigram/abai-stub";
 
 export type HarnessForm = "session" | "mcp";
 

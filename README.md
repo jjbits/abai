@@ -23,7 +23,7 @@ abaigram.
 - `spec/abaigrammar.md`: the contract, version 0.1, language-neutral.
 - `implementations/typescript/`: the TypeScript implementation, an npm
   workspace of three packages.
-  - `abai/`: the stub, the library a program includes.
+  - `abai-stub/`: the stub, the library a program includes.
   - `abai-embedded-harness/`: the harness, the agent runtime, based on the
     open source [pi](https://github.com/earendil-works/pi) harness.
   - `abaikit/`: the authoring tool, itself an abaigram. Its guide for
@@ -178,7 +178,7 @@ ending in a command that proves it:
 > Make a new abaigram called <name>.
 ```
 
-The library is on npm as `@abaigram/stub` and `@abaigram/embedded-harness`;
+The library is on npm as `@abaigram/abai-stub` and `@abaigram/abai-embedded-harness`;
 the tool as `@abaigram/abaikit`.
 
 ## ⚠️ A note on security
