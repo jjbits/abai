@@ -1,5 +1,5 @@
 /** The abai stub: the library a TypeScript program includes to become an abaigram. See spec/abaigrammar.md. */
-export const ABAI_STUB_VERSION = "0.1.0";
+export const ABAI_STUB_VERSION = "0.2.0";
 
 export { type AuditAct, AuditLog, type AuditOutcome, type AuditRecord, capValue, summarizeAnswer } from "./audit.ts";
 export { fitValue, validateKnobValue } from "./cells/fit.ts";
@@ -80,6 +80,7 @@ export {
 	type KnobHandler,
 	SIDECAR_DEVIATION,
 	type StopHandler,
+	THREAD_DEVIATION,
 	type TurnOptions,
 } from "./registry.ts";
 export { MAX_SOCKET_PATH_BYTES } from "./wire/descriptor.ts";

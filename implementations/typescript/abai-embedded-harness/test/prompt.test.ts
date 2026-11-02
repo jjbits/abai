@@ -13,8 +13,8 @@ const IDENTITY = [
 ].join("\n");
 const manifest = FIXTURE_MANIFEST;
 const base: ComposeInput["options"] = { form: "session", auto: false, denyMutate: false, wakes: [] };
-const compose = (options: Partial<typeof base> = {}) =>
-	composeSystemPrompt({ identity: IDENTITY, manifest, options: { ...base, ...options } });
+const compose = (options: Partial<typeof base> = {}, mode = "turns") =>
+	composeSystemPrompt({ identity: IDENTITY, manifest, mode, options: { ...base, ...options } });
 
 describe("composeSystemPrompt", () => {
 	test("contains the identity, every declaration with its doc, the waking events and the rules", () => {
@@ -39,7 +39,7 @@ describe("composeSystemPrompt", () => {
 			const listed = text.includes(`- ${event.name}: ${event.doc}`);
 			expect(listed, event.name).toBe(event.wakes === "always");
 		}
-		expect(text).toContain("You are attached to the running program counter, in sidecar mode.");
+		expect(text).toContain("You are attached to the running program counter, in turns mode.");
 		expect(text).toContain("# The program: counter (abaigrammar 0.1, mode turns)");
 		expect(text).toContain("[abai wake]");
 		expect(text).toContain("State a reason with every act of control");
@@ -57,11 +57,29 @@ describe("composeSystemPrompt", () => {
 		expect(compose({ form: "mcp" })).not.toContain("confirmed by the person");
 	});
 
+	test("names the selected mode, not the manifest's first, and offers watches only where they exist", () => {
+		// the fixture declares turns first; a run under ABAI_MODE=thread or sidecar is told so
+		const turns = compose();
+		expect(turns).not.toContain("abai_watch");
+		expect(turns).toContain("nothing can wake you between touchpoints, so there are no watches");
+		expect(turns).toContain("between touchpoints you do not run");
+		// the MCP form's agent parks in abai_wait: live in every mode, watches included
+		expect(compose({ form: "mcp" })).toContain("A watch (abai_watch) wakes you when a cell meets a condition");
+		const thread = compose({}, "thread");
+		expect(thread).toContain("You are attached to the running program counter, in thread mode.");
+		expect(thread).toContain("# The program: counter (abaigrammar 0.1, mode thread)");
+		expect(thread).toContain("A watch (abai_watch) wakes you when a cell meets a condition");
+		expect(compose({ form: "mcp" }, "sidecar")).toContain(
+			"You are attached to the running program counter, in sidecar mode, from an MCP client.",
+		);
+	});
+
 	test("the owner's appended text ends the prompt and outranks the rules", () => {
 		const plain = compose();
 		const withText = composeSystemPrompt({
 			identity: IDENTITY,
 			manifest,
+			mode: "turns",
 			options: base,
 			addendum: "  Lab rule: fix small things in the workshop.\n",
 		});
@@ -81,7 +99,9 @@ describe("composeSystemPrompt", () => {
 		expect(withText.endsWith("\n\n")).toBe(false);
 		expect(plain).not.toContain("# From the owner");
 		for (const blank of [undefined, "", "  \n"]) {
-			expect(composeSystemPrompt({ identity: IDENTITY, manifest, options: base, addendum: blank })).toBe(plain);
+			expect(
+				composeSystemPrompt({ identity: IDENTITY, manifest, mode: "turns", options: base, addendum: blank }),
+			).toBe(plain);
 		}
 	});
 
@@ -96,8 +116,21 @@ describe("composeSystemPrompt", () => {
 
 describe("composeInstructions", () => {
 	test("is short and points at abai_prompt and abai_wait", () => {
-		const text = composeInstructions({ identity: IDENTITY, manifest, options: { ...base, form: "mcp" } });
+		const text = composeInstructions({
+			identity: IDENTITY,
+			manifest,
+			mode: "sidecar",
+			options: { ...base, form: "mcp" },
+		});
 		expect(text.startsWith("counter abai harness (abaigrammar 0.1, sidecar).")).toBe(true);
+		expect(
+			composeInstructions({
+				identity: IDENTITY,
+				manifest,
+				mode: "thread",
+				options: { ...base, form: "mcp" },
+			}).startsWith("counter abai harness (abaigrammar 0.1, thread)."),
+		).toBe(true);
 		expect(text).toContain("You supervise a counter program.");
 		expect(text).toContain("abai_prompt");
 		expect(text).toContain("abai_wait");

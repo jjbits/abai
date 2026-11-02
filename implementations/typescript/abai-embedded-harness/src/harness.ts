@@ -130,6 +130,8 @@ export class Harness {
 	private transport: StubTransport | undefined;
 	private unsubscribe: Array<() => void> = [];
 	private _manifest: Manifest | undefined;
+	/** The mode the attached program selected (its hello); kept with the manifest after a detach. */
+	private _mode: string | undefined;
 	private _identity: string;
 	private claims: string[] = [];
 	private readonly pending = new Map<string, PendingDecision>();
@@ -175,6 +177,11 @@ export class Harness {
 		return this._manifest;
 	}
 
+	/** The mode the program runs in (section 4.4): turns, thread or sidecar; undefined before the first attach. */
+	get mode(): string | undefined {
+		return this._mode;
+	}
+
 	get identity(): string {
 		return this._identity;
 	}
@@ -200,6 +207,7 @@ export class Harness {
 			if (violations.length > 0)
 				throw new Error(`the program's manifest does not validate: ${violations.join("; ")}`);
 			this.applyManifest(manifest);
+			this._mode = transport.hello.mode;
 			const content = await transport.content();
 			this._identity = content.identity;
 			// every decision the program offers, by default: policy forbid is never asked (sections 5.4 and 10), and a
@@ -747,6 +755,13 @@ export class Harness {
 	// -----------------------------------------------------------------------
 
 	addWatch(cell: string, op: WatchOp, value: unknown, cadenceMs?: number): WatchInfo {
+		// in turns mode the session form's agent runs only at touchpoints, so no watch can wake it (section 5.2);
+		// the MCP form's agent parks in abai_wait and takes a watch's wake like any other
+		if (this._mode === "turns" && this.options.form === "session") {
+			throw new Error(
+				"in turns mode this agent runs only at touchpoints, so no watch can wake it (abaigrammar 5.2): watches are for thread and sidecar modes",
+			);
+		}
 		if (!WATCH_OPS.includes(op)) throw new Error(`unknown watch op ${op} (one of: ${WATCH_OPS.join(", ")})`);
 		if ((op === "eq" || op === "ne" || op === "gt" || op === "lt" || op === "crossed") && value === undefined) {
 			throw new Error(`watch op ${op} needs a value`);
@@ -860,7 +875,7 @@ export class Harness {
 							name: hello.name,
 							...(hello.pid === undefined ? {} : { pid: hello.pid }),
 							...(hello.cwd === undefined ? {} : { cwd: hello.cwd }),
-							mode: hello.modes[0] ?? "unknown",
+							mode: hello.mode,
 							connection: hello.connection,
 						}
 					: null,
@@ -897,12 +912,28 @@ export class Harness {
 	systemPrompt(addendum?: string): string {
 		const manifest = this._manifest;
 		if (!manifest) throw new Error("no manifest yet: attach first");
-		return composeSystemPrompt({ identity: this._identity, manifest, options: this.options, addendum });
+		return composeSystemPrompt({
+			identity: this._identity,
+			manifest,
+			mode: this.promptMode(manifest),
+			options: this.options,
+			addendum,
+		});
 	}
 
 	instructions(): string {
 		const manifest = this._manifest;
 		if (!manifest) throw new Error("no manifest yet: attach first");
-		return composeInstructions({ identity: this._identity, manifest, options: this.options });
+		return composeInstructions({
+			identity: this._identity,
+			manifest,
+			mode: this.promptMode(manifest),
+			options: this.options,
+		});
+	}
+
+	/** The mode the prompt names: the program's selection, or its default before any attach (a manifest given to the constructor). */
+	private promptMode(manifest: Manifest): string {
+		return this._mode ?? manifest.modes[0] ?? "unknown";
 	}
 }

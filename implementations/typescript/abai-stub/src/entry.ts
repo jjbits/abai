@@ -13,7 +13,7 @@ import { validateManifest } from "./manifest/manifest.ts";
 import { parseManifestYaml, renderManifestYaml } from "./manifest/render.ts";
 import { type Abaigram, harnessBinary, importHarnessModule } from "./program.ts";
 
-export const STUB_VERSION = "0.1.0";
+export const STUB_VERSION = "0.2.0";
 
 export type CheckStatus = "ok" | "fail" | "skip";
 

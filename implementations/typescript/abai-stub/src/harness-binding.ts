@@ -17,6 +17,7 @@ import {
 	type FieldSchema,
 	fieldOf,
 	type Manifest,
+	type Mode,
 	matchesType,
 	type TurnDecl,
 } from "./manifest/manifest.ts";
@@ -122,6 +123,8 @@ export interface HarnessBinding {
 	readonly manifest: Manifest;
 	readonly name: string;
 	readonly connection: string;
+	/** The mode this run selected (section 4.4). A harness follows it, not the first declared mode. */
+	readonly mode: Mode;
 	content(): {
 		identity: string;
 		install: string | undefined;
@@ -226,6 +229,7 @@ export class DirectBinding implements HarnessBinding, AttachedHarness {
 	readonly manifest: Manifest;
 	readonly name: string;
 	readonly connection: string;
+	readonly mode: Mode;
 	private readonly app: Abaigram;
 	private readonly audit: AuditLog;
 	private readonly listeners: { [K in keyof BindingEvents]: Set<BindingEvents[K]> } = {
@@ -250,6 +254,7 @@ export class DirectBinding implements HarnessBinding, AttachedHarness {
 		this.manifest = app.manifest;
 		this.name = app.manifest.name;
 		this.connection = options.connection ?? "direct";
+		this.mode = app.mode;
 		for (const capability of this.manifest.capabilities) this.capabilityIndex.set(capability.name, capability);
 		const auditPath = options.auditPath ?? resolve(app.content.root, expandHome(this.manifest.audit.path));
 		this.audit = new AuditLog(auditPath, (error) => {

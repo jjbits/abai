@@ -6,7 +6,7 @@
 // served by the stub, since abaikit is itself an abaigram.
 import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { runEntry } from "@abaigram/abai-stub";
+import { type Mode, runEntry } from "@abaigram/abai-stub";
 import { runAbaify } from "./abaify.ts";
 import { type AbaikitApp, createApp } from "./app.ts";
 import { runCheck } from "./check.ts";
@@ -17,7 +17,7 @@ import { runRun } from "./run.ts";
 
 export { type AbaikitIo, processIo, UsageError } from "./io.ts";
 
-export type Mode = "turns" | "sidecar";
+export type { Mode };
 
 export type ParsedArgs =
 	| { verb: "help" }
@@ -41,9 +41,9 @@ export type Verb = ParsedArgs["verb"];
 const USAGE = [
 	"usage: abaikit learnabai|check|new|abaify|run ...",
 	"       abaikit learnabai [--section <name>] [--json] [--skill] [--skill-dir <dir>]",
-	"       abaikit check <repo> [--level <1-4>] [--mode <turns|sidecar>] [--entry <cmd>] [--runs <n>] [--timeout <seconds>] [--json]",
+	"       abaikit check <repo> [--level <1-4>] [--mode <turns|thread|sidecar>] [--entry <cmd>] [--runs <n>] [--timeout <seconds>] [--json]",
 	"       abaikit new <name> --lang <ts> [--level <1-4>] [--dir <dir>]",
-	"       abaikit abaify <repo> [--level <1-4>] [--mode <turns|sidecar>] [--rounds <n>] [--dry-run]",
+	"       abaikit abaify <repo> [--level <1-4>] [--mode <turns|thread|sidecar>] [--rounds <n>] [--dry-run]",
 	"       abaikit run <repo> [--] ARGS",
 	"       abaikit abai ...            the standard agent entry (session, install, manifest, doctor, config, mcp, run)",
 	"",
@@ -107,7 +107,8 @@ function scan(
 				break;
 			}
 			case "mode":
-				if (value !== "turns" && value !== "sidecar") throw new UsageError(`${arg} needs turns or sidecar`);
+				if (value !== "turns" && value !== "thread" && value !== "sidecar")
+					throw new UsageError(`${arg} needs turns, thread or sidecar`);
 				values[arg] = value;
 				break;
 		}

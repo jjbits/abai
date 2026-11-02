@@ -1,6 +1,6 @@
 {
 	"name": "@abaigram/abaikit",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
@@ -32,8 +32,8 @@
 		"test": "vitest --run"
 	},
 	"dependencies": {
-		"@abaigram/abai-embedded-harness": "0.1.0",
-		"@abaigram/abai-stub": "0.1.0"
+		"@abaigram/abai-embedded-harness": "0.2.0",
+		"@abaigram/abai-stub": "0.2.0"
 	},
 	"engines": {
 		"node": ">=22.19.0"

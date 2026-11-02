@@ -33,7 +33,7 @@ export interface SessionFormOptions {
 	addendum?: string;
 	/** Consent timeout for `confirm` (the manifest's `confirm_timeout`); default 60 s. */
 	confirmTimeoutMs?: number;
-	/** `turns`: the agent runs only inside touchpoints. Default: from the program's first declared mode. */
+	/** `turns`: the agent runs only inside touchpoints. Default: turns when the program's selected mode is turns, else live. */
 	mode?: SessionMode;
 	/** How long the first contact with the model may take; past it the harness detaches (section 4.3). Default 30 s. */
 	connectTimeoutMs?: number;
@@ -81,7 +81,7 @@ export class SessionForm {
 	constructor(options: SessionFormOptions) {
 		this.harness = options.harness;
 		this.channel = options.channel;
-		this.mode = options.mode ?? (this.harness.hello?.modes[0] === "turns" ? "turns" : "live");
+		this.mode = options.mode ?? (this.harness.mode === "turns" ? "turns" : "live");
 		this.connectTimeoutMs = options.connectTimeoutMs ?? 30_000;
 		const confirmTimeoutMs = options.confirmTimeoutMs ?? 60_000;
 		const front: ToolFront = {
@@ -193,7 +193,12 @@ export class SessionForm {
 			})
 			.finally(() => {
 				this.running = false;
-				this.runEnded();
+				try {
+					this.runEnded();
+				} catch (error) {
+					// a fault in the run's own bookkeeping (a channel that throws) stays with the harness
+					this.harness.ring.note(`# a run's end failed: ${errorMessage(error)}`);
+				}
 				this.deliver();
 			});
 	}

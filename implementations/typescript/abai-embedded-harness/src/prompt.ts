@@ -17,6 +17,8 @@ export type HarnessForm = "session" | "mcp";
 export interface ComposeInput {
 	identity: string;
 	manifest: Manifest;
+	/** The mode this run selected (turns, thread or sidecar); not always the manifest's first. */
+	mode: string;
 	options: { form: HarnessForm; auto: boolean; denyMutate: boolean; wakes: string[] };
 	/**
 	 * Text the owner appended when the harness was started. It ends the
@@ -69,25 +71,34 @@ function policyParagraph(options: ComposeInput["options"]): string {
 		: "Every abai_call of a mutate capability asks the person at this terminal for consent first; when there is no one to ask, the call is denied. Do not repeat a denied call.";
 }
 
-function attachmentParagraph(form: HarnessForm, name: string): string {
+function attachmentParagraph(form: HarnessForm, name: string, mode: string): string {
 	if (form === "mcp") {
 		return [
-			`You are attached to the running program ${name}, in sidecar mode, from an MCP client.`,
+			`You are attached to the running program ${name}, in ${mode} mode, from an MCP client.`,
 			"Nothing can wake you: you park by calling abai_wait, which returns the next wake (program events, watches, timers, pending decisions) or 'no wake' after its timeout, and you call it again.",
 			"A wake is not a message from the person; act on it, then park again. Answer the person when they speak to you.",
 		].join(" ");
 	}
+	// in turns mode this agent runs only inside the program's touchpoints (section 6.1); every other form and mode is live
+	const gated = mode === "turns";
 	return [
-		`You are attached to the running program ${name}, in sidecar mode.`,
+		`You are attached to the running program ${name}, in ${mode} mode.`,
 		"This session is your user channel: the person at this terminal supervises you and can see everything you do.",
-		"Messages that begin with [abai wake] are not from the person: the harness delivers the program's events, watches, timers and pending decisions to you that way, coalesced, with the transcript lines since the last wake.",
-		"Act on a wake with tools when something needs doing, answer briefly, and stop; the next wake comes on its own.",
+		gated
+			? "Messages that begin with [abai wake] are not from the person: at each of the program's turns, decisions and install touchpoints the harness delivers its events, timers and pending decisions to you that way, coalesced, with the transcript lines since the last wake."
+			: "Messages that begin with [abai wake] are not from the person: the harness delivers the program's events, watches, timers and pending decisions to you that way, coalesced, with the transcript lines since the last wake.",
+		gated
+			? "Act on a wake with tools when something needs doing, answer briefly, and stop; between touchpoints you do not run."
+			: "Act on a wake with tools when something needs doing, answer briefly, and stop; the next wake comes on its own.",
 	].join(" ");
 }
 
 /** The full system prompt of the supervising agent. */
 export function composeSystemPrompt(input: ComposeInput): string {
-	const { identity, manifest, options } = input;
+	const { identity, manifest, mode, options } = input;
+	// the session form in turns mode runs only at touchpoints, so nothing can wake it between them; the MCP
+	// form's agent parks in abai_wait and is live in every mode
+	const gated = mode === "turns" && options.form === "session";
 	const confirmMark = options.form === "session" && !options.auto && !options.denyMutate;
 	const wakingEvents = manifest.events.filter(
 		(event) => (event.wakes !== undefined && event.wakes !== "never") || options.wakes.includes(event.name),
@@ -98,12 +109,12 @@ export function composeSystemPrompt(input: ComposeInput): string {
 	lines.push(
 		"# How you are attached",
 		"",
-		attachmentParagraph(options.form, manifest.name),
+		attachmentParagraph(options.form, manifest.name, mode),
 		"",
 		policyParagraph(options),
 		"",
 	);
-	lines.push(`# The program: ${manifest.name} (abaigrammar ${manifest.abaigrammar}, mode ${manifest.modes[0]})`, "");
+	lines.push(`# The program: ${manifest.name} (abaigrammar ${manifest.abaigrammar}, mode ${mode})`, "");
 	lines.push("Where this program departs from the grammar:", ...(manifest.deviations?.map((d) => `- ${d}`) ?? []), "");
 	lines.push("## Cells (read with abai_cells; knobs written with abai_set)", "", ...manifest.cells.map(cellLine), "");
 	lines.push(
@@ -135,7 +146,9 @@ export function composeSystemPrompt(input: ComposeInput): string {
 		"",
 	);
 	lines.push(
-		"Other events are in the transcript (abai_transcript). A watch (abai_watch) wakes you when a cell meets a condition; a timer (abai_timer) wakes you later.",
+		gated
+			? "Other events are in the transcript (abai_transcript). A timer (abai_timer) wakes you at the next touchpoint after it fires; in turns mode nothing can wake you between touchpoints, so there are no watches."
+			: "Other events are in the transcript (abai_transcript). A watch (abai_watch) wakes you when a cell meets a condition; a timer (abai_timer) wakes you later.",
 		"abai_lifecycle asks the program's status, and where this harness launched the program it can pause, resume, stop or restart it; stop and restart ask the person first. The program's own output and its exit arrive as abai.io.stdout, abai.io.stderr and abai.lifecycle.exited.",
 		"",
 	);
@@ -147,7 +160,7 @@ export function composeSystemPrompt(input: ComposeInput): string {
 		"- Prefer the narrowest act: a knob over a capability that mutates, a note to the person over a change they did not ask for.",
 		"- Never edit the program's project yourself; your own tools are for looking.",
 		"- Keep answers to wakes short. The person is not waiting for prose.",
-		"- When you are not attached, the channel tools (abai_cells, abai_set, abai_call, abai_claim, abai_audit) fail; abai_status, abai_attach, the transcript, watches and timers still work. Say so and wait.",
+		`- When you are not attached, the channel tools (abai_cells, abai_set, abai_call, abai_claim, abai_audit) fail; abai_status, abai_attach, the transcript, ${gated ? "" : "watches and "}timers still work. Say so and wait.`,
 	);
 	const addendum = input.addendum?.trim() ?? "";
 	if (addendum !== "") {
@@ -167,7 +180,7 @@ export function composeSystemPrompt(input: ComposeInput): string {
 export function composeInstructions(input: ComposeInput): string {
 	const firstParagraph = input.identity.split("\n\n")[1]?.trim() ?? "";
 	return [
-		`${input.manifest.name} abai harness (abaigrammar ${input.manifest.abaigrammar}, sidecar).`,
+		`${input.manifest.name} abai harness (abaigrammar ${input.manifest.abaigrammar}, ${input.mode}).`,
 		firstParagraph,
 		"Call abai_prompt once for the full instructions, abai_status for the program's state, and abai_wait to park until the next wake; act on wakes with the abai_* tools, stating a reason for every act of control.",
 	]

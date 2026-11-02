@@ -86,6 +86,12 @@ describe("abaikit's arguments", () => {
 		});
 		expect(parseArgs(["run", "repo", "--", "--x", "1"])).toEqual({ verb: "run", repo: "repo", args: ["--x", "1"] });
 		expect(parseArgs(["check", "repo"])).toEqual({ verb: "check", repo: "repo", json: false });
+		expect(parseArgs(["check", "repo", "--mode", "thread"])).toMatchObject({
+			verb: "check",
+			repo: "repo",
+			mode: "thread",
+		});
+		expect(() => parseArgs(["check", "repo", "--mode", "fast"])).toThrow(/--mode needs turns, thread or sidecar/);
 		for (const help of [[], ["help"], ["--help"], ["-h"]]) expect(parseArgs(help)).toEqual({ verb: "help" });
 	});
 

@@ -106,14 +106,16 @@ function mcpResponses(stdout: string): Array<Record<string, unknown>> {
 		.map((line) => JSON.parse(line) as Record<string, unknown>);
 }
 
-test("the program's own entry serves an MCP client: in-process under turns, through the built binary under sidecar", () => {
+test("the program's own entry serves an MCP client: in-process under turns and thread, through the built binary under sidecar", () => {
 	const copy = mkdtempSync(join(resolve(import.meta.dirname, ".."), "tmp-seam-"));
 	dirs.push(copy);
 	cpSync(example, copy, { recursive: true });
 	const program = join(copy, "counter.ts");
 	writeFileSync(
 		program,
-		readFileSync(program, "utf8").replaceAll("../../src/", `${resolve(import.meta.dirname, "../../abai-stub/src")}/`),
+		readFileSync(program, "utf8")
+			.replaceAll("../../src/", `${resolve(import.meta.dirname, "../../abai-stub/src")}/`)
+			.replace('modes: ["turns", "sidecar"],', 'modes: ["turns", "thread", "sidecar"],'),
 	);
 	const base = {
 		...process.env,
@@ -123,7 +125,7 @@ test("the program's own entry serves an MCP client: in-process under turns, thro
 		ABAI_RUN_DIR: join(copy, "run"),
 		ABAI_HARNESS_BIN: resolve(import.meta.dirname, "../dist/bin.js"),
 	};
-	for (const mode of ["", "sidecar"]) {
+	for (const mode of ["", "thread", "sidecar"]) {
 		const result = spawnSync(process.execPath, [program, "abai", "mcp"], {
 			cwd: copy,
 			env: { ...base, ABAI_MODE: mode },
@@ -135,6 +137,10 @@ test("the program's own entry serves an MCP client: in-process under turns, thro
 		const responses = mcpResponses(result.stdout);
 		expect(responses.map((r) => r.id)).toEqual([1, 2, 3]);
 		expect((responses[0].result as { serverInfo: { name: string } }).serverInfo.name).toBe("abai-embedded-harness");
+		// the selected mode reached the harness through the built packages: the instructions name it
+		expect((responses[0].result as { instructions: string }).instructions).toContain(
+			`counter abai harness (abaigrammar 0.1, ${mode || "turns"}).`,
+		);
 		expect((responses[1].result as { tools: Array<{ name: string }> }).tools.map((t) => t.name)).toContain(
 			"abai_wait",
 		);

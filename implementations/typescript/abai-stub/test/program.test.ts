@@ -6,7 +6,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import { validateManifest } from "../src/manifest/manifest.ts";
 import { AbaigramAbort, createAbaigram } from "../src/program.ts";
 import { FLAG_ATTACHED, FLAG_QUEUE, FLAG_WORK } from "../src/region.ts";
-import type { AbaigramOptions } from "../src/registry.ts";
+import { type AbaigramOptions, SIDECAR_DEVIATION, THREAD_DEVIATION } from "../src/registry.ts";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -275,6 +275,16 @@ describe("mode and harness selection", () => {
 	test("the first declared mode is the default; ABAI_MODE picks a declared one", () => {
 		expect(make().mode).toBe("turns");
 		expect(make({ ABAI_MODE: "sidecar" }).mode).toBe("sidecar");
+	});
+
+	test("a manifest carries the thread deviation when thread is declared, the sidecar one when sidecar is", () => {
+		const both =
+			createAbaigram({ ...options(), modes: ["turns", "thread", "sidecar"] }, { env: {} }).manifest.deviations ?? [];
+		expect(both.indexOf(THREAD_DEVIATION)).toBeGreaterThan(0);
+		expect(both.indexOf(SIDECAR_DEVIATION)).toBe(both.indexOf(THREAD_DEVIATION) + 1);
+		const neither = createAbaigram({ ...options(), modes: ["turns"] }, { env: {} }).manifest.deviations ?? [];
+		expect(neither).not.toContain(THREAD_DEVIATION);
+		expect(neither).not.toContain(SIDECAR_DEVIATION);
 	});
 
 	test("an undeclared ABAI_MODE falls back and is counted", () => {

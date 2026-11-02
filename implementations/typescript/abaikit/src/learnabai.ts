@@ -13,6 +13,7 @@ import {
 	ABAIGRAMMAR_VERSION,
 	INSTANTIATION_DEVIATIONS,
 	SIDECAR_DEVIATION,
+	THREAD_DEVIATION,
 } from "@abaigram/abai-stub";
 import { PACKAGE_ROOT } from "./abaigram.ts";
 import type { ParsedArgs } from "./bin.ts";
@@ -109,7 +110,9 @@ function outsideFences(text: string): string {
 /** The guide, filled in and split into its sections. */
 export function loadGuide(file: string = GUIDE_FILE, packageRoot: string = PACKAGE_ROOT): Guide {
 	const packages = packageSpecs(packageRoot);
-	const deviations = [...INSTANTIATION_DEVIATIONS, SIDECAR_DEVIATION].map((d) => `- ${d}`).join("\n");
+	const deviations = [...INSTANTIATION_DEVIATIONS, THREAD_DEVIATION, SIDECAR_DEVIATION]
+		.map((d) => `- ${d}`)
+		.join("\n");
 	let workspaceNote = "";
 	if (packages.fromWorkspace && !packages.built) {
 		workspaceNote =

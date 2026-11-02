@@ -143,7 +143,7 @@ export function brief(root: string, level: number, mode: Mode | undefined, inv: 
 			)
 		: "(no package.json)";
 	const lines = [
-		`Retrofit the repository at ${root} into an abaigram at level ${level}${mode ? ` in ${mode} mode` : ""}.`,
+		`Retrofit the repository at ${root} into an abaigram at level ${level}${mode ? ` in ${mode} mode: declare "${mode}" among the modes, since the check runs under it` : ""}.`,
 		"",
 		"You work only through abaikit's capabilities (the abai_call tool), with `repo` set to exactly the path above:",
 		"- repo.list (glob narrows: `*.json` by name anywhere, `src/**` or `scripts/*.mjs` by path; the listing is bounded and says so first), repo.read (a window of lines; the result says `from` and `to`).",

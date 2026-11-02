@@ -3,8 +3,9 @@
 // flags live in typed arrays so a write is one store and a read is one load
 // (sections 11.1 and 11.2); sized cells and event payloads live in
 // preallocated slot objects, whose copies allocate (a declared deviation).
-// A shared-buffer layout for thread mode can implement the same shape over a
-// SharedArrayBuffer later; nothing here reaches outside the process.
+// Thread mode uses this same layout: the harness lives on the program's event
+// loop, so nothing here reaches outside the process. A SharedArrayBuffer layout
+// of the same shape would serve a harness in a worker, if one is ever wanted.
 
 /** Flag slots in `Region.flags`. */
 export const FLAG_ATTACHED = 0;

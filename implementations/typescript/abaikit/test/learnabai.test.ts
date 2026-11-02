@@ -4,7 +4,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { ABAI_STUB_VERSION, SIDECAR_DEVIATION } from "@abaigram/abai-stub";
+import { ABAI_STUB_VERSION, SIDECAR_DEVIATION, THREAD_DEVIATION } from "@abaigram/abai-stub";
 import { afterEach, describe, expect, test } from "vitest";
 import { createAbaikit } from "../src/abaigram.ts";
 import { type AbaikitIo, main, parseArgs } from "../src/bin.ts";
@@ -35,6 +35,11 @@ describe("the guide", () => {
 		for (const section of guide.sections) expect(section.text.length).toBeGreaterThan(200);
 		const deviations = guide.sections.find((s) => s.id === "deviations");
 		expect(deviations?.text).toContain(SIDECAR_DEVIATION);
+		expect(deviations?.text).toContain(THREAD_DEVIATION);
+		// the fifth when thread is declared, the last when sidecar is: the prose above the list says so
+		expect(deviations?.text.indexOf(THREAD_DEVIATION)).toBeLessThan(
+			deviations?.text.indexOf(SIDECAR_DEVIATION) ?? -1,
+		);
 		// in this checkout the packages are the workspace's own, so the install line points at them
 		expect(guide.packages.fromWorkspace).toBe(true);
 		expect(guide.text).toContain(`npm install ${guide.packages.abai} ${guide.packages.harness}`);

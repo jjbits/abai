@@ -77,6 +77,10 @@ interface Fake {
 	connections: number;
 	/** What hello reports as pid. */
 	helloPid: number;
+	/** What hello reports as the selected mode; undefined leaves the field out (a foreign host). */
+	helloMode: string | undefined;
+	/** The modes hello declares. */
+	modes: string[];
 	/** What hello offers as claimable hooks; default: every decision policy does not forbid. */
 	claimable: string[];
 	/** What hello advertises; a v1-core host advertises none. */
@@ -134,6 +138,8 @@ function fakeEndpoint(): Promise<Fake> {
 		claims,
 		connections: 0,
 		helloPid: 424242,
+		helloMode: "sidecar",
+		modes: ["sidecar"],
 		claimable: manifest.decisions.filter((d) => d.policy !== "forbid").map((d) => d.name),
 		extensions: [],
 		withHello: [],
@@ -250,14 +256,14 @@ function fakeEndpoint(): Promise<Fake> {
 			protocol: PROTOCOL_VERSION,
 			pid: fake.helloPid,
 			cwd: dir,
-			mode: "sidecar",
+			...(fake.helloMode === undefined ? {} : { mode: fake.helloMode }),
 			capabilities: { hooks: fake.claimable, commands: ["job.retry"] },
 			lastSeq: seq,
 			connection: `k${fake.connections}`,
 			abai: {
 				name: "socky",
 				abaigrammar: "0.1",
-				modes: ["sidecar"],
+				modes: fake.modes,
 				audit: { path: join(dir, "audit.jsonl"), failed: null },
 				...(fake.extensions.length === 0 ? {} : { extensions: fake.extensions }),
 			},
@@ -299,6 +305,7 @@ describe("SocketTransport over wire v1", () => {
 			name: "socky",
 			abaigrammar: "0.1",
 			modes: ["sidecar"],
+			mode: "sidecar",
 			pid: 424242,
 			cwd: expect.any(String),
 			connection: "k1",
@@ -313,6 +320,19 @@ describe("SocketTransport over wire v1", () => {
 
 		fake.helloPid = process.pid;
 		await expect(SocketTransport.connect(fake.socketPath)).rejects.toThrow(/this process/);
+	});
+
+	test("the selected mode is the hello's own, not the first declared; a hello without one falls back to the first", async () => {
+		const fake = await fakeEndpoint();
+		fake.modes = ["turns", "sidecar"];
+		const selected = await SocketTransport.connect(fake.socketPath);
+		expect(selected.hello.modes).toEqual(["turns", "sidecar"]);
+		expect(selected.hello.mode).toBe("sidecar");
+		selected.close("done");
+		fake.helloMode = undefined;
+		const fallback = await SocketTransport.connect(fake.socketPath);
+		expect(fallback.hello.mode).toBe("turns");
+		fallback.close("done");
 	});
 
 	test("resolves a pid and the one program through descriptors in the run dir", async () => {

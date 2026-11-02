@@ -8,7 +8,10 @@ import type { Consent, Manifest } from "@abaigram/abai-stub";
 export interface TransportHello {
 	name: string;
 	abaigrammar: string;
+	/** The modes the program declares; the first is its default. */
 	modes: string[];
+	/** The mode this run selected (section 4.4): what the harness's behaviour follows. */
+	mode: string;
 	pid?: number;
 	cwd?: string;
 	/** This connection's id, as the audit log names it. */

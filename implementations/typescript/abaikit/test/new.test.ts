@@ -56,7 +56,12 @@ describe("abaikit new", () => {
 		test(`a level ${level} project checks at level ${level} with nothing unexercised and no violation`, async () => {
 			const { project, code, report, w } = await makeAndCheck(level);
 			expect(report.violations).toEqual([]);
-			expect(report).toMatchObject({ name: "stepper", level, passed: true, declaredModes: ["turns", "sidecar"] });
+			expect(report).toMatchObject({
+				name: "stepper",
+				level,
+				passed: true,
+				declaredModes: ["turns", "thread", "sidecar"],
+			});
 			expect(code).toBe(0);
 			if (level >= 2) expect(report.unexercised).toEqual([]);
 			// the manifest new rendered is what the program itself prints

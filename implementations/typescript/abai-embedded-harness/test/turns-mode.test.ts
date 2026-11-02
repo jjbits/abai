@@ -201,6 +201,27 @@ describe("turns mode with a faux model", () => {
 		form.shutdown("test over");
 	});
 
+	test("in turns mode a watch is refused with the grammar's reason, and the prompt does not offer one", async () => {
+		const { app, form, harness, setResponses } = await world();
+		expect(harness.mode).toBe("turns");
+		expect(form.mode).toBe("turns");
+		expect(harness.systemPrompt()).not.toContain("abai_watch");
+		expect(harness.status().program?.mode).toBe("turns");
+		let refusal = "";
+		setResponses([
+			toolUse("abai_watch", { cell: "queue.depth", op: "gt", value: 10 }),
+			(context) => {
+				const result = [...context.messages].reverse().find((m) => m.role === "toolResult");
+				refusal = result && result.role === "toolResult" ? JSON.stringify(result.content) : "";
+				return fauxAssistantMessage("no watch then");
+			},
+		]);
+		await app.turn("end_of_batch");
+		expect(refusal).toContain("in turns mode this agent runs only at touchpoints, so no watch can wake it");
+		expect(harness.watches()).toEqual([]);
+		form.shutdown("test over");
+	});
+
 	test("in turns mode an event outside a touchpoint waits, and arrives in the next turn's wake", async () => {
 		const { app, form, setResponses, harness } = await world();
 		let wake = "";

@@ -18,8 +18,9 @@ only through channels the program declares. The contract is
 
 Two halves, one boundary. The stub lives in the program. The harness is
 the agent's runtime: a model, a tool set, a user channel. The boundary is
-a function call inside the process (turns mode) or a local socket between
-two processes (sidecar mode). It means the same thing either way.
+a function call inside the process (turns and thread modes) or a local
+socket between two processes (sidecar mode). It means the same thing
+either way.
 
 Five channels, declared in a manifest the program builds in code:
 
@@ -37,9 +38,13 @@ a budget on it).
 
 Three modes. `turns`: one process, one thread, the agent runs only inside
 a touchpoint; the simplest, the natural first rung for a command-line
-program. `sidecar`: the harness is a separate process, attached through
-a socket; the reference mode, the one with the whole lifecycle channel.
-`thread` is in the contract but not in this instantiation yet. A manifest
+program. `thread`: one process, the agent live beside the program once
+it is attached (`await app.attach()` at startup, or any touchpoint), with
+no touchpoint needed after that; in Node the harness runs on the
+program's event loop between its callbacks, which the manifest states as
+a deviation, so a long synchronous step on either side delays the other.
+`sidecar`: the harness is a separate process, attached through a socket;
+the reference mode, the one with the whole lifecycle channel. A manifest
 declares the modes it supports; the first is the default; `ABAI_MODE`
 overrides at startup.
 
@@ -85,9 +90,9 @@ import { createAbaigram } from "@abaigram/abai-stub";
 
 export const app = createAbaigram(
 	{
-		name: "myprog",                       // the program's name; also the manifest's
-		entry: "node dist/main.js abai",      // how the entry is reached: a runnable command line
-		modes: ["turns", "sidecar"],          // supported; the first is the default
+		name: "myprog",                        // the program's name; also the manifest's
+		entry: "node dist/main.js abai",       // how the entry is reached: a runnable command line
+		modes: ["turns", "thread", "sidecar"], // supported; the first is the default
 		content: { identity: "abai/identity.md" }, // the prompts; identity is required
 		check: { run: "node dist/main.js --demo" }, // a short command that exercises the channels
 		cells: {
@@ -162,7 +167,7 @@ failed.emit({ job_id, attempt });                      // nothing happens when n
 const choice = await app.decide<string>("on_backlog", { depth: queue.length, workers: n }); // "wait" when nobody answers
 await app.turn("end_of_batch");                        // returns at once when nobody is there
 app.safepoint();                                       // where "safepoint" calls and a pause take effect
-await app.attach();                                    // optional: ask for the agent now
+await app.attach();                                    // ask for the agent now: optional in turns mode, a thread program's first act
 ```
 
 abai is ESM-only. In a CommonJS repository load it inside the async main:
@@ -186,8 +191,10 @@ runnable. Every act is written to the audit log with the agent's reason.
 
 Cost: detached, every operation above is a load or a store. Keep your own
 handlers cheap too; the agent's model calls never run on the program's
-thread in sidecar mode, and in turns mode they run only inside the
-touchpoints you placed.
+thread in sidecar mode, in turns mode they run only inside the
+touchpoints you placed, and in thread mode the agent's own work runs on
+the program's event loop between its callbacks, so a slow synchronous
+step on either side delays the other.
 
 ## 3. The standard entry (entry)
 
@@ -319,11 +326,14 @@ prints `{{stub}}`.
 
 Step 2. Declare the abaigram in a new module (`src/abai.ts`, or
 `src/abai.js` in a JavaScript repository) as in section 2, with only
-`name`, a runnable `entry`, `modes: ["turns", "sidecar"]`, `content` and
-`root` to begin with. When the program's real entry is a plain launcher
-that runs without the build (a `bin/x.mjs` that imports `dist/`), put the
-declaration beside it as a `.mjs` module the launcher can import, so the
-entry answers `manifest` and `doctor` before anything is built. Verify: build as the repository does, then
+`name`, a runnable `entry`, `modes: ["turns", "sidecar"]` (add `"thread"`
+when the program keeps running between touchpoints and wants the agent
+live in its process; it then calls `await app.attach()` at startup),
+`content` and `root` to begin with. When the program's real entry is a
+plain launcher that runs without the build (a `bin/x.mjs` that imports
+`dist/`), put the declaration beside it as a `.mjs` module the launcher
+can import, so the entry answers `manifest` and `doctor` before anything
+is built. Verify: build as the repository does, then
 `node -e "import('./dist/abai.js')"` (the built path) runs without error.
 
 Step 3. Hook the entry. In the file where `main()` starts, insert the
@@ -383,8 +393,8 @@ they name the file or the declaration and what the contract wanted.
 ## 6. Running an abaigram (use)
 
 Session on the terminal, the person talking to the agent while the
-program runs (turns mode in-process; sidecar attaches to or starts the
-harness binary):
+program runs (turns and thread modes in-process; sidecar attaches to or
+starts the harness binary):
 
 ```
 <entry>
@@ -425,14 +435,15 @@ machine, lives under `~/.abai/`:
 <entry> doctor                             # offline checks, then the model
 ```
 
-Environment variables, all optional: `ABAI_MODE` (`turns` or `sidecar`,
-overriding the manifest's first mode), `ABAI_HARNESS` (`off`, `null`,
-`exercise`: check runs only; never set it for real use), `ABAI_HOME` (the
-configuration directory, default `~/.abai`), `ABAI_RUN_DIR` (descriptors
-of running programs, default `~/.abai/run`), `ABAI_HARNESS_BIN` (the
-sidecar harness binary to spawn), `ABAI_HARNESS_MODULE` (the in-process
-harness module to import), `ABAI_CHANNEL` (`terminal` or `none`),
-`ABAI_ATTACH_WAIT_MS` (how long a touchpoint waits for a harness).
+Environment variables, all optional: `ABAI_MODE` (`turns`, `thread` or
+`sidecar`, overriding the manifest's first mode), `ABAI_HARNESS` (`off`,
+`null`, `exercise`: check runs only; never set it for real use),
+`ABAI_HOME` (the configuration directory, default `~/.abai`),
+`ABAI_RUN_DIR` (descriptors of running programs, default `~/.abai/run`),
+`ABAI_HARNESS_BIN` (the sidecar harness binary to spawn),
+`ABAI_HARNESS_MODULE` (the in-process harness module to import),
+`ABAI_CHANNEL` (`terminal` or `none`), `ABAI_ATTACH_WAIT_MS` (how long a
+touchpoint waits for a harness).
 
 The audit log (`audit.path` in the manifest; default
 `~/.abai/audit/<name>.jsonl`) records every act of control with its
@@ -440,8 +451,9 @@ reason, consent and outcome. Read it when you wonder what the agent did.
 
 ## 7. Where this instantiation departs from the contract (deviations)
 
-The first four are in every manifest this stub writes, the last when
-`sidecar` is declared, so an agent reading the manifest sees them too:
+The first four are in every manifest this stub writes, the fifth when
+`thread` is declared and the last when `sidecar` is, so an agent reading
+the manifest sees them too:
 
 {{deviations}}
 

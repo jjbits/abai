@@ -3,7 +3,7 @@ import { parse, stringify } from "yaml";
 import { ABAI_STUB_VERSION } from "../src/index.ts";
 
 test("the stub package loads", () => {
-	expect(ABAI_STUB_VERSION).toBe("0.1.0");
+	expect(ABAI_STUB_VERSION).toBe("0.2.0");
 });
 
 test("yaml round-trips a manifest-shaped document", () => {

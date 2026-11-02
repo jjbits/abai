@@ -38,6 +38,8 @@ export class DirectTransport implements StubTransport {
 			name: binding.name,
 			abaigrammar: binding.manifest.abaigrammar,
 			modes: [...binding.manifest.modes],
+			// a program on a stub older than this harness hands a binding with no mode: its default mode then
+			mode: (binding as { mode?: string }).mode ?? binding.manifest.modes[0] ?? "unknown",
 			pid: process.pid,
 			cwd: process.cwd(),
 			connection: binding.connection,
@@ -157,10 +159,7 @@ export class DirectTransport implements StubTransport {
 	async lifecycle(op: string, reason: string, consent?: Consent): Promise<unknown> {
 		this.assertOpen();
 		if (op !== "status") {
-			throw new TransportCallError(
-				"invalid",
-				`no lifecycle channel in ${this.hello.modes[0] ?? "this"} mode (section 5.5)`,
-			);
+			throw new TransportCallError("invalid", `no lifecycle channel in ${this.hello.mode} mode (section 5.5)`);
 		}
 		const outcome = this.binding.lifecycle(op, reason, consent);
 		if (!outcome.ok) throw new TransportCallError(outcome.code, outcome.error);

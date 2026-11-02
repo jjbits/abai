@@ -128,6 +128,21 @@ async function bind(extra: Partial<AbaigramOptions> = {}): Promise<Bound> {
 
 const tick = (): Promise<void> => new Promise((done) => setImmediate(done));
 
+describe("the binding names the mode", () => {
+	test("the selected mode, not the first declared one", async () => {
+		const { app, binding } = await bind();
+		expect(binding.mode).toBe(app.mode);
+		expect(binding.mode).toBe("turns");
+		const dir = mkdtempSync(`${tmpdir()}/abai-bind-`);
+		dirs.push(dir);
+		const threaded = createAbaigram(
+			{ ...options(), modes: ["turns", "thread"] },
+			{ env: { ABAI_MODE: "thread" }, root: dir, auditPath: join(dir, "audit.jsonl") },
+		);
+		expect(threaded.bind("k1").mode).toBe("thread");
+	});
+});
+
 describe("attaching through the factory", () => {
 	test("attach is one of the places, is idempotent, and flushes the counters first", async () => {
 		const dir = mkdtempSync(`${tmpdir()}/abai-bind-`);

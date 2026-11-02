@@ -87,6 +87,7 @@ describe.skipIf(!arxDir)("a live arx-06 as the sidecar target", () => {
 				name: "arx-06",
 				abaigrammar: "0.1",
 				modes: ["sidecar"],
+				mode: "sidecar",
 				pid,
 				extensions: [],
 			});

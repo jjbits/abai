@@ -511,8 +511,8 @@ export function checkHandler(app: Abaigram, io: Pick<AbaikitIo, "cwd" | "env">) 
 			throw new UsageError("level must be 1 to 4");
 		}
 		const mode = typeof params.mode === "string" && params.mode !== "" ? params.mode : undefined;
-		if (mode !== undefined && mode !== "turns" && mode !== "sidecar")
-			throw new UsageError("mode must be turns or sidecar");
+		if (mode !== undefined && mode !== "turns" && mode !== "thread" && mode !== "sidecar")
+			throw new UsageError("mode must be turns, thread or sidecar");
 		const entry = typeof params.entry === "string" && params.entry !== "" ? params.entry : undefined;
 		const runs =
 			typeof params.runs === "number" && Number.isInteger(params.runs) && params.runs > 0 ? params.runs : undefined;

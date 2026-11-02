@@ -209,7 +209,7 @@ describe("the MCP server's protocol", () => {
 		expect(known.result).toMatchObject({
 			protocolVersion: "2024-11-05",
 			capabilities: { tools: {} },
-			serverInfo: { name: MCP_SERVER_NAME, version: "0.1.0" },
+			serverInfo: { name: MCP_SERVER_NAME, version: "0.2.0" },
 		});
 		expect((known.result as { instructions: string }).instructions).toContain("abai_wait");
 		expect((known.result as { instructions: string }).instructions).toContain("mcpy");
@@ -309,6 +309,15 @@ describe("the MCP server's tools", () => {
 			attached: true,
 			program: { name: "mcpy" },
 		});
+	});
+
+	test("abai_watch is served under the MCP form in turns mode: this agent parks in abai_wait, nothing gates it", async () => {
+		const w = await world();
+		const added = await w.call("abai_watch", { cell: "queue.depth", op: "changed", cadence_ms: 100 });
+		expect(added.isError).toBe(false);
+		expect(added.text).toBe("watch 1 on queue.depth changed every 100 ms");
+		expect(w.harness.watches()).toHaveLength(1);
+		expect(w.harness.mode).toBe("turns");
 	});
 
 	test("abai_lifecycle: status answers in process; anything more has no channel in turns mode", async () => {

@@ -195,6 +195,10 @@ describe("abaikit check", () => {
 		expect(wrong.report.level).toBe(1);
 		expect(wrong.report.checkedModes).toEqual([]);
 		expect(wrong.report.violations).toEqual([{ where: "--mode", what: "hello declares turns, not sidecar" }]);
+		const threaded = await checkJson(w2.io, [hello, "--mode", "thread"]);
+		expect(threaded.code).toBe(1);
+		expect(threaded.report.checkedModes).toEqual([]);
+		expect(threaded.report.violations).toEqual([{ where: "--mode", what: "hello declares turns, not thread" }]);
 	}, 90_000);
 
 	test("a check.run that hangs is ended at the timeout by its own handle and reported; --entry overrides the manifest's", async () => {

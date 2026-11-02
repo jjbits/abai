@@ -161,10 +161,12 @@ export class SocketTransport implements StubTransport {
 		this.lastSeq = typeof hello.lastSeq === "number" ? hello.lastSeq : 0;
 		const capabilities = isRecord(hello.capabilities) ? hello.capabilities : undefined;
 		const claimable = strings(capabilities?.hooks);
+		const modes = strings(abai.modes) ?? [];
 		this.hello = {
 			name: abai.name,
 			abaigrammar: abai.abaigrammar,
-			modes: strings(abai.modes) ?? [],
+			modes,
+			mode: typeof hello.mode === "string" ? hello.mode : (modes[0] ?? "unknown"),
 			pid: typeof hello.pid === "number" ? hello.pid : undefined,
 			cwd: typeof hello.cwd === "string" ? hello.cwd : undefined,
 			connection: typeof hello.connection === "string" ? hello.connection : "?",

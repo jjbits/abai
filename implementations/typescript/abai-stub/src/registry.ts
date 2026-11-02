@@ -68,6 +68,8 @@ export const INSTANTIATION_DEVIATIONS: readonly string[] = [
 	"A cooperative pause holds the program at its next touchpoint, not inside safepoint(): a safepoint cannot block, since the resume arrives on the same event loop that would be blocked. The flag is still one load at a safepoint, and os pause (the launcher's signal) holds the program anywhere (section 5.5).",
 	"Under launch the child is attached as soon as its endpoint is accepted, a moment after its first statement rather than before it: Node cannot listen in a constructor. A program that wants the agent present from its first line awaits attach() (section 6.3).",
 ];
+export const THREAD_DEVIATION =
+	"In thread mode the harness has no thread of its own: Node runs one event loop, so the harness runs on the program's loop between the program's callbacks, live, and a long synchronous step on either side delays the other. Isolation is what one loop allows: a harness listener that throws while the program emits, decides or gives a turn is caught at the binding, a failed agent run ends that run alone, and a model unreachable at first contact detaches the harness, so the program goes on as itself; an exception or rejection the harness lets escape to the process is a process fault, as for any library on the same loop (section 6.2).";
 export const SIDECAR_DEVIATION =
 	"In sidecar mode the region is not shared memory: cells are read by request and events cross the socket, so observation costs the program one serialization per connected harness (section 11.3). Under ABAI_HARNESS=null or exercise the null harness stays in the program's process and no endpoint opens, so a check run's measured overhead leaves that serialization out.";
 
@@ -119,6 +121,7 @@ export function buildManifest(options: AbaigramOptions): Manifest {
 		turns.push({ name, ...turn });
 	}
 	const deviations = [...(options.deviations ?? []), ...INSTANTIATION_DEVIATIONS];
+	if (options.modes.includes("thread")) deviations.push(THREAD_DEVIATION);
 	if (options.modes.includes("sidecar")) deviations.push(SIDECAR_DEVIATION);
 
 	const manifest: Manifest = {

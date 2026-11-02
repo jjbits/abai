@@ -6,8 +6,8 @@ import { expect, test } from "vitest";
 import { ABAI_HARNESS_VERSION } from "../src/index.ts";
 
 test("the harness package loads and sees the stub", () => {
-	expect(ABAI_HARNESS_VERSION).toBe("0.1.0");
-	expect(ABAI_STUB_VERSION).toBe("0.1.0");
+	expect(ABAI_HARNESS_VERSION).toBe("0.2.0");
+	expect(ABAI_STUB_VERSION).toBe("0.2.0");
 });
 
 test("the pinned agent loop runs one scripted faux reply to completion", async () => {

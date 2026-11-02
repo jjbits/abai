@@ -22,7 +22,7 @@ export interface TemplateInput {
 
 // The declaration's constants, each written once and read by both renderings.
 const ENTRY = "node src/main.ts abai";
-const MODES = ["turns", "sidecar"] as const;
+const MODES = ["turns", "thread", "sidecar"] as const;
 const CONTENT = { identity: "abai/identity.md", use: "abai/use.md" };
 const AUDIT = { path: "./abai-audit.log" };
 const CHECK = { run: "node src/main.ts 4" };
