@@ -52,6 +52,8 @@ export interface AbaigramOptions {
 	};
 	attention?: Manifest["attention"];
 	policy?: Manifest["policy"];
+	/** The agent may be a member of an agent network; `doc` says how its members relate to this program's names. */
+	network?: Manifest["network"];
 	/** The program's own deviations; the instantiation's are appended. */
 	deviations?: string[];
 	cells?: Record<string, CellOptions>;
@@ -147,6 +149,7 @@ export function buildManifest(options: AbaigramOptions): Manifest {
 				}),
 		...(options.attention === undefined ? {} : { attention: options.attention }),
 		...(options.policy === undefined ? {} : { policy: options.policy }),
+		...(options.network === undefined ? {} : { network: options.network }),
 		deviations,
 		cells,
 		events,

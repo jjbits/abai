@@ -1,10 +1,11 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import { validateManifest } from "../src/manifest/manifest.ts";
-import { AbaigramAbort, createAbaigram } from "../src/program.ts";
+import { parseManifestYaml, renderManifestYaml } from "../src/manifest/render.ts";
+import { AbaigramAbort, createAbaigram, harnessBinary } from "../src/program.ts";
 import { FLAG_ATTACHED, FLAG_QUEUE, FLAG_WORK } from "../src/region.ts";
 import { type AbaigramOptions, SIDECAR_DEVIATION, THREAD_DEVIATION } from "../src/registry.ts";
 
@@ -118,6 +119,34 @@ describe("declarations become the manifest", () => {
 				{ env: {} },
 			),
 		).toThrow(/both a decision and a turn/);
+	});
+
+	test("a network declaration is carried after policy and left out when absent", () => {
+		const app = createAbaigram(
+			{
+				name: "net",
+				modes: ["turns"],
+				policy: { confirm_timeout: "10s" },
+				network: { doc: "Members are ships; a member's name is its callsign." },
+			},
+			{ env: {} },
+		);
+		expect(app.manifest.network).toEqual({ doc: "Members are ships; a member's name is its callsign." });
+		const keys = Object.keys(app.manifest);
+		expect(keys.indexOf("network")).toBe(keys.indexOf("policy") + 1);
+		expect(keys.indexOf("deviations")).toBe(keys.indexOf("network") + 1);
+		expect(renderManifestYaml(app.manifest)).toContain(
+			"network:\n  doc: Members are ships; a member's name is its callsign.\n",
+		);
+		expect("network" in make().manifest).toBe(false);
+		// the rendered file reads back as a manifest that validates
+		expect(validateManifest(parseManifestYaml(renderManifestYaml(app.manifest)))).toEqual([]);
+	});
+
+	test("an invalid network declaration throws at startup", () => {
+		expect(() => createAbaigram({ name: "bad", modes: ["turns"], network: { doc: "" } }, { env: {} })).toThrow(
+			/network\.doc/,
+		);
 	});
 });
 
@@ -301,6 +330,31 @@ describe("mode and harness selection", () => {
 		await app.install();
 		await app.session();
 		expect(app.attached).toBe(false);
+	});
+
+	test("the harness binary is the program's own bin link, else the nearest ancestor's, else the name on PATH", () => {
+		const workspace = mkdtempSync(join(tmpdir(), "ws-"));
+		dirs.push(workspace);
+		const root = join(workspace, "packages", "app");
+		mkdirSync(root, { recursive: true });
+		// a lone program with nothing installed: the bare name, for PATH
+		expect(harnessBinary({}, root)).toEqual({ command: "abai-embedded-harness", args: [] });
+		// a workspace hoists the harness and its bin link to the workspace root
+		const hoisted = join(workspace, "node_modules", ".bin", "abai-embedded-harness");
+		mkdirSync(dirname(hoisted), { recursive: true });
+		writeFileSync(hoisted, "");
+		expect(harnessBinary({}, root)).toEqual({ command: hoisted, args: [] });
+		// the program's own installation wins over an ancestor's
+		const own = join(root, "node_modules", ".bin", "abai-embedded-harness");
+		mkdirSync(dirname(own), { recursive: true });
+		writeFileSync(own, "");
+		expect(harnessBinary({}, root)).toEqual({ command: own, args: [] });
+		// ABAI_HARNESS_BIN overrides both: a script runs under this very node, anything else is the command
+		expect(harnessBinary({ ABAI_HARNESS_BIN: "/x/bin.js" }, root)).toEqual({
+			command: process.execPath,
+			args: ["/x/bin.js"],
+		});
+		expect(harnessBinary({ ABAI_HARNESS_BIN: "/x/harness" }, root)).toEqual({ command: "/x/harness", args: [] });
 	});
 
 	test("a launch socket is read once and removed from the environment; the launched program waits for its launcher and spawns nothing", async () => {

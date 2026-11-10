@@ -134,6 +134,8 @@ export interface Manifest {
 	};
 	attention?: { budget?: { wakes_per_minute?: number; tokens_per_hour?: number } };
 	policy?: { confirm_timeout?: string };
+	/** The agent may be a member of an agent network (section 7); `doc` says how its members relate to this program's names. */
+	network?: { required?: boolean; doc: string };
 	/** Where this instantiation departs from the grammar, one sentence each (section 7); a program may add its own. */
 	deviations?: string[];
 	cells: CellDecl[];
@@ -503,6 +505,15 @@ export function validateManifest(value: unknown): string[] {
 	}
 	if (value.check !== undefined && (!isRecord(value.check) || typeof value.check.run !== "string")) {
 		v.add("check.run", "is required when check is declared");
+	}
+	if (value.network !== undefined) {
+		const network = value.network;
+		if (!isRecord(network) || typeof network.doc !== "string" || network.doc.trim() === "") {
+			v.add("network.doc", "is required when network is declared");
+		}
+		if (isRecord(network) && network.required !== undefined && typeof network.required !== "boolean") {
+			v.add("network.required", "must be a boolean");
+		}
 	}
 
 	const cells = validateNamed(v, "cells", value.cells, new Set());

@@ -33,6 +33,8 @@ export interface AbaiConfig {
 	connectTimeoutMs: number;
 	/** Provider settings that are not secrets. */
 	providers?: Record<string, Record<string, string>>;
+	/** The aiip binary that runs this machine's network identities (abaigrammar section 7, `network`). */
+	aiip?: { bin?: string };
 }
 
 /** The configuration directory: `ABAI_HOME`, else `~/.abai`. */
@@ -107,6 +109,11 @@ export function readConfig(home: string): AbaiConfig {
 		connectTimeoutMs: typeof timeout === "number" && timeout > 0 ? timeout : DEFAULT_CONNECT_TIMEOUT_MS,
 		...(typeof record.providers === "object" && record.providers !== null
 			? { providers: record.providers as Record<string, Record<string, string>> }
+			: {}),
+		...(typeof record.aiip === "object" &&
+		record.aiip !== null &&
+		typeof (record.aiip as { bin?: unknown }).bin === "string"
+			? { aiip: { bin: (record.aiip as { bin: string }).bin } }
 			: {}),
 	};
 }

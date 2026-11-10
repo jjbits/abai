@@ -33,8 +33,14 @@ Five channels, declared in a manifest the program builds in code:
 - `turns`: the program hands the agent a bounded moment to act.
 
 Plus `lifecycle` (pause, resume, stop, restart, status: what a supervising
-harness may do to the process) and `attention` (what wakes the agent, and
-a budget on it).
+harness may do to the process), `attention` (what wakes the agent, and a
+budget on it), and `network`, optional: the agent may meet the agents of
+other programs on an agent network, and its `doc` sentence tells the agent
+how the members it sees relate to this program's own names. abai carries
+only the basic acts here (an identity on a network, who is on it, who is
+reachable, a message sent to a member, a message received as a wake);
+how agents find each other and what they say is each program's own, in
+its declaration and its content.
 
 Three modes. `turns`: one process, one thread, the agent runs only inside
 a touchpoint; the simplest, the natural first rung for a command-line
@@ -140,6 +146,10 @@ export const app = createAbaigram(
 		lifecycle: {
 			pause: "cooperative",                 // "cooperative" | "os" | "none"
 			stop: { graceful: "10s", handler: () => shutdown() },
+		},
+		network: {                              // optional: the agent may be a member of an agent network
+			doc: "Members are other job queues of this fleet; a member's name is its host name.",
+			required: false,                      // true: a run with no membership attaches no agent
 		},
 	},
 	// the directory holding abaigram.yaml and abai/: one level up from src/abai.ts and from dist/abai.js;
@@ -443,7 +453,55 @@ Environment variables, all optional: `ABAI_MODE` (`turns`, `thread` or
 `ABAI_HARNESS_BIN` (the sidecar harness binary to spawn),
 `ABAI_HARNESS_MODULE` (the in-process harness module to import),
 `ABAI_CHANNEL` (`terminal` or `none`), `ABAI_ATTACH_WAIT_MS` (how long a
-touchpoint waits for a harness).
+touchpoint waits for a harness), and for the network below `ABAI_NET_DIR`,
+`ABAI_NET_TOKEN` and `ABAI_AIIP_BIN`.
+
+A program that declares `network` puts its agent on an aiip network
+(`~/projects/aiip`: an overlay network for agents, one Go binary, no
+root). The harness talks to aiip's daemon over its socket; the `aiip`
+binary must be on the machine (on the PATH, or named by `ABAI_AIIP_BIN`
+or `<entry> config set aiip-bin <path>`), and `doctor` says when it is
+not. A run's identity lives in a state directory: `ABAI_NET_DIR`, else
+`~/.abai/net/<name>/`, so two runs of one program on one machine are one
+member unless the run is given a directory of its own. At attach the
+harness finds or starts the daemon for that directory, joins with the
+invite in `ABAI_NET_TOKEN` when the run is not yet a member, and tells
+the agent where it is; `abai_peers` lists who else is there and who is
+reachable now. A message from a member wakes the agent as the event
+`abai.net.message`, with the sender's issued name and what it said;
+`abai_send` answers a member by name, with a reason, and `abai_messages`
+lists the run's messages. Every message sent or received is one line in
+the audit log (`act: message`), written by the stub. The envelope on the
+wire is aiap's (`~/projects/agents-cowork`), so an abaigram and an aiap
+agent on one network read each other. A declared network the run cannot
+have is said in the prompt, unless `required` is true, in which case no
+agent attaches.
+
+```
+<entry> config net                                 # the state dir, the daemon, the memberships
+<entry> config net create <network> --as <member>  # a new network, this run as its authority
+<entry> config net invite <network> --for <member> # an invite token for a new member (authority only)
+<entry> config net join --token -                  # join with an invite read from stdin
+<entry> config net leave <network>
+```
+
+An invite token carries the member's private key: hand it to that
+member's run as `ABAI_NET_TOKEN` or on stdin, never in a command line, a
+file or a log, and never over a link that is not encrypted end to end to
+that run. A network has 253 slots besides its authority and no removal:
+every name ever invited takes one, whether or not its holder enrolls, and
+a name whose holder has enrolled is that member's for good. Keep a
+member's state directory, since a lost one cannot rejoin under its name,
+and let the member run now and then: a certificate lasts 30 days and the
+daemon renews it only while it runs, so a member that has not run for 30
+days is locked out just the same. An invite for a name whose holder never
+enrolled reissues that slot with fresh credentials and voids the earlier
+token, so mint a second invite for a name only when the authority's
+roster (`abai_peers`, or the harness client's `members`) shows its holder
+not enrolled and nobody is about to enroll with the first. Who creates
+the network, who mints the invites, how members find each other and what
+they say to one another is the program's to decide, in its code and its
+content, not abai's.
 
 The audit log (`audit.path` in the manifest; default
 `~/.abai/audit/<name>.jsonl`) records every act of control with its

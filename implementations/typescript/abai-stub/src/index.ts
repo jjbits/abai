@@ -1,7 +1,16 @@
 /** The abai stub: the library a TypeScript program includes to become an abaigram. See spec/abaigrammar.md. */
 export const ABAI_STUB_VERSION = "0.2.0";
 
-export { type AuditAct, AuditLog, type AuditOutcome, type AuditRecord, capValue, summarizeAnswer } from "./audit.ts";
+export {
+	type AuditAct,
+	AuditLog,
+	type AuditOutcome,
+	type AuditRecord,
+	capValue,
+	isMessageRecord,
+	type MessageRecord,
+	summarizeAnswer,
+} from "./audit.ts";
 export { fitValue, validateKnobValue } from "./cells/fit.ts";
 export { type ContentSlots, createContent, findRoot, MANIFEST_FILE } from "./content.ts";
 export {

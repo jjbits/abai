@@ -480,6 +480,82 @@ describe("the sidecar endpoint: hello and the library commands", () => {
 		expect(prog.app.attached).toBe(true);
 	});
 
+	test("record_message writes the audit line under the connection and refuses a record out of shape", async () => {
+		const prog = await program();
+		const raw = await connect(prog.endpoint.socketPath);
+		expect(raw.hello.connection).toBe("k1");
+		const ok = await raw.request({
+			type: "record_message",
+			direction: "received",
+			peer: "alpha",
+			addr: "100.64.0.1",
+			network: "world",
+			id: "01JMSG0000000000000000ABCD",
+			kind: "msg",
+			body: "hi",
+			outcome: "ok",
+		});
+		expect(ok).toMatchObject({ success: true, command: "record_message", data: {} });
+		const bad = await raw.request({ type: "record_message", direction: "sideways", peer: "alpha" });
+		expect(bad).toMatchObject({ success: false, command: "record_message", code: "invalid" });
+		expect(bad.error).toContain("record_message needs");
+		const messages = prog.records().filter((r) => r.act === "message");
+		expect(messages).toHaveLength(1);
+		expect(messages[0]).toMatchObject({
+			act: "message",
+			name: "alpha",
+			conn: "k1",
+			params: { direction: "received", network: "world", kind: "msg" },
+			value: "hi",
+			outcome: "ok",
+		});
+	});
+
+	test("record_message takes the reason from the request envelope and refuses shapes a record cannot have", async () => {
+		const prog = await program();
+		const raw = await connect(prog.endpoint.socketPath);
+		const sent = await raw.request(
+			{
+				type: "record_message",
+				direction: "sent",
+				peer: "beta",
+				addr: "100.64.0.2",
+				network: "world",
+				id: "01JSENT000000000000000ABCD",
+				kind: "msg",
+				body: "hello",
+				outcome: "ok",
+				ms: 7,
+			},
+			{ reason: "greeting the neighbour" },
+		);
+		expect(sent).toMatchObject({ success: true, command: "record_message" });
+		const asArray = await raw.request({ type: "record_message", items: [] });
+		expect(asArray).toMatchObject({ success: false, code: "invalid" });
+		const badMs = await raw.request({
+			type: "record_message",
+			direction: "sent",
+			peer: "beta",
+			addr: "100.64.0.2",
+			network: "world",
+			kind: "msg",
+			body: "hello",
+			outcome: "ok",
+			ms: "7",
+		});
+		expect(badMs).toMatchObject({ success: false, code: "invalid" });
+		const messages = prog.records().filter((r) => r.act === "message");
+		expect(messages).toHaveLength(1);
+		expect(messages[0]).toMatchObject({
+			name: "beta",
+			id: "01JSENT000000000000000ABCD",
+			conn: "k1",
+			reason: "greeting the neighbour",
+			ms: 7,
+			params: { direction: "sent" },
+		});
+	});
+
 	test("a connection that cannot keep up is closed by the endpoint; another connection is unaffected", async () => {
 		// 128 KiB: well above what one synchronous burst queues for a reader, well below what a paused reader piles up
 		const prog = await program({ maxBuffered: 128 * 1024 });

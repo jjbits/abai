@@ -6,10 +6,20 @@
 // and it carries no model: the front end runs the agent that calls its
 // tools. Ported from arx-06-0's harness core and generalized: decisions
 // are the manifest's, not a fixed hook list.
-import type { CapabilityDecl, Consent, DecisionDecl, Manifest } from "@abaigram/abai-stub";
+import type { CapabilityDecl, Consent, DecisionDecl, Manifest, MessageRecord } from "@abaigram/abai-stub";
 import { durationMs, validateManifest } from "@abaigram/abai-stub";
+import { AiipError, type AiipMessage, type AiipSendResult } from "./net/client.ts";
+import type { SpawnFn } from "./net/daemon.ts";
+import { type Classified, classify, encodeMessage } from "./net/envelope.ts";
+import {
+	connectNetwork,
+	type NetworkMembership,
+	type NetworkPeers,
+	type NetworkStatus,
+	type RunNetwork,
+} from "./net/membership.ts";
 import type { HarnessOptions } from "./options.ts";
-import { composeInstructions, composeSystemPrompt } from "./prompt.ts";
+import { composeInstructions, composeSystemPrompt, type PromptNetwork } from "./prompt.ts";
 import {
 	DECISION_MARGIN_MS,
 	DEFAULT_WATCH_CADENCE_MS,
@@ -63,6 +73,48 @@ export interface HarnessDeps {
 	manifest?: Manifest;
 	/** An identity to use before any attach. */
 	identity?: string;
+	/** The environment the network step reads (ABAI_NET_DIR, ABAI_NET_TOKEN, ABAI_AIIP_BIN); default the process's. */
+	env?: NodeJS.ProcessEnv;
+	/** How the network step starts aiipd; tests inject a spawn that serves a fake. */
+	spawn?: SpawnFn;
+}
+
+/** One message this run sent or received over its network, as `abai_messages` lists them. */
+export interface HarnessMessage {
+	direction: "sent" | "received";
+	network: string;
+	/** The counterpart's name as the network's authority issued it, else its address. */
+	peer: string;
+	addr: string;
+	/** A name the sender only claimed, when it differs from the issued one; it does not route. */
+	claimed?: string;
+	/** The envelope id, when the payload carried one. */
+	id?: string;
+	/** The conversation: the first message's id, which its replies carry. */
+	thread?: string;
+	/** The id of the message this one answers. */
+	re?: string;
+	kind: "msg" | "raw" | "profile" | "profile-query" | "receipt" | "foreign";
+	ts: number;
+	body: string;
+}
+
+export interface SendInput {
+	/** The member's issued name, or its address. */
+	to: string;
+	body: string;
+	reason: string;
+	thread?: string;
+	re?: string;
+	/** Which network, when this run is on several. */
+	network?: string;
+}
+
+export interface SentMessage {
+	id: string;
+	network: string;
+	to: { name: string; addr: string };
+	thread: string;
 }
 
 export interface HarnessStatus {
@@ -74,6 +126,12 @@ export interface HarnessStatus {
 	touchpoints: Array<{ id: string; kind: string }>;
 	/** Present when this harness launched the program. */
 	launch?: LaunchState;
+	/** This run's network (section 7, `network`), when it has one. */
+	network?: NetworkStatus;
+	/** Why this run has no network, when the program declared one. */
+	networkAbsence?: string;
+	/** Messages sent and received (the ones that wake) since attach, when this run has a network. */
+	messages?: { sent: number; received: number };
 	watches: WatchInfo[];
 	timers: TimerInfo[];
 	budget: { perMinute: number | undefined; used: number };
@@ -149,11 +207,19 @@ export class Harness {
 	private closed = false;
 	private waiters: Array<() => void> = [];
 	private readonly now: () => number;
+	private readonly env: NodeJS.ProcessEnv;
+	private readonly spawn: SpawnFn | undefined;
+	private net: RunNetwork | undefined;
+	private netAbsent: string | undefined;
+	private readonly messageLog: HarnessMessage[] = [];
+	private readonly messageCounts = { sent: 0, received: 0 };
 
 	constructor(options: HarnessOptions, deps: HarnessDeps = {}) {
 		this.options = options;
 		this.now = deps.now ?? Date.now;
 		this._identity = deps.identity ?? "";
+		this.env = deps.env ?? process.env;
+		this.spawn = deps.spawn;
 		this.ring = new TranscriptRing((message) => [this.renderLine(message)]);
 		this.scheduler = new WakeScheduler(options.budget, this.now);
 		if (deps.manifest) this.applyManifest(deps.manifest);
@@ -190,6 +256,172 @@ export class Harness {
 		return this.lastError;
 	}
 
+	/** This run's network, when it has one. */
+	get network(): NetworkStatus | undefined {
+		return this.net?.status;
+	}
+
+	/** Why this run has no network, when the program declared one. */
+	get networkAbsence(): string | undefined {
+		return this.netAbsent;
+	}
+
+	/** Every member of every network this run is on, with whether each is enrolled and reachable now. */
+	async peers(): Promise<NetworkPeers[]> {
+		if (!this.net) throw new Error(this.noNetwork());
+		return this.net.peers();
+	}
+
+	private noNetwork(): string {
+		return this.netAbsent !== undefined
+			? `this run has no network: ${this.netAbsent}`
+			: "this run has no network: the program declares none and ABAI_NET_DIR is unset";
+	}
+
+	/** What this run sent and received over its network since attach, oldest first; `limit` keeps the newest. */
+	messages(filter: { network?: string; limit?: number } = {}): HarnessMessage[] {
+		const list =
+			filter.network === undefined ? this.messageLog : this.messageLog.filter((m) => m.network === filter.network);
+		const limit = filter.limit !== undefined && filter.limit > 0 ? Math.floor(filter.limit) : list.length;
+		return list.slice(-limit);
+	}
+
+	/**
+	 * Send a message to a member of this run's network, by the name the
+	 * authority issued (or its address), in an aiap `msg` envelope; the act
+	 * goes to the program's audit log with the agent's reason. A refusal is
+	 * recorded as an error and thrown in plain words. Needs an attached
+	 * program whose stub records messages: a message that could not be
+	 * recorded is not sent.
+	 */
+	async send(input: SendInput): Promise<SentMessage> {
+		requireReason(input.reason, "abai_send");
+		const transport = this.transport;
+		if (!this.attached || transport === undefined) {
+			throw new Error("abai_send needs an attached program: the message would not be recorded");
+		}
+		if (!transport.canRecordMessages()) {
+			throw new Error(
+				"abai_send needs a program whose stub records messages (the wire's messages extension); this one does not, so the message was not sent",
+			);
+		}
+		if (!this.net) throw new Error(this.noNetwork());
+		const membership = pickMembership(this.net.status.memberships, input.network);
+		const encoded = encodeMessage({ body: input.body, thread: input.thread, re: input.re, now: this.now() });
+		const started = this.now();
+		const entry: HarnessMessage = {
+			direction: "sent",
+			network: membership.network,
+			peer: input.to,
+			addr: "",
+			id: encoded.id,
+			thread: input.thread ?? encoded.id,
+			...(input.re === undefined ? {} : { re: input.re }),
+			kind: "msg",
+			ts: started,
+			body: input.body,
+		};
+		let result: AiipSendResult;
+		try {
+			result = await this.net.daemon.client.send(membership.id, input.to, encoded.bytes);
+		} catch (error) {
+			const why = sendFailure(error, input.to, membership.network);
+			this.ring.note(`# network: a message to ${input.to} on ${membership.network} was not sent: ${why}`);
+			await this.recordMessage(transport, entry, "error", {
+				reason: input.reason,
+				error: why,
+				ms: this.now() - started,
+			});
+			throw new Error(why);
+		}
+		entry.peer = result.to.name ?? input.to;
+		entry.addr = result.to.addr;
+		this.remember(entry);
+		this.messageCounts.sent += 1;
+		this.ring.note(`# network: sent ${encoded.id} to ${entry.peer} on ${membership.network}`);
+		await this.recordMessage(transport, entry, "ok", { reason: input.reason, ms: this.now() - started });
+		return {
+			id: encoded.id,
+			network: membership.network,
+			to: { name: entry.peer, addr: entry.addr },
+			thread: entry.thread as string,
+		};
+	}
+
+	/** A message the mail loop took from a mailbox: named by the roster, sorted by its envelope, shown, woken for, recorded. */
+	private async onMessage(message: AiipMessage, membership: NetworkMembership): Promise<void> {
+		// the program this message is for: a reattach meanwhile must not get it in its own audit log
+		const transport = this.transport;
+		const sorted = classify(message.payload);
+		const issued = await this.net?.nameFor(membership.id, message.from.addr);
+		const claimed = message.from.name === undefined || message.from.name === "" ? undefined : message.from.name;
+		const envelope = "envelope" in sorted ? sorted.envelope : undefined;
+		const entry: HarnessMessage = {
+			direction: "received",
+			network: membership.network,
+			peer: issued ?? message.from.addr,
+			addr: message.from.addr,
+			...(claimed !== undefined && claimed !== issued ? { claimed } : {}),
+			...(envelope === undefined ? {} : { id: envelope.id, thread: envelope.thread ?? envelope.id }),
+			...(envelope?.re === undefined ? {} : { re: envelope.re }),
+			kind: sorted.kind,
+			ts: this.now(),
+			body: summarize(sorted),
+		};
+		this.remember(entry);
+		const wakes = sorted.kind === "msg" || sorted.kind === "raw";
+		if (wakes) this.messageCounts.received += 1;
+		// the other aiap kinds are shown and never wake, whatever --wake says
+		this.observed("abai.net.message", messagePayload(entry), wakes ? true : "never", messageLine(entry));
+		if (wakes) await this.recordMessage(transport, entry, "ok");
+	}
+
+	/** The audit line for a message, written by the program's stub; what cannot be written is said in the transcript. */
+	private async recordMessage(
+		transport: StubTransport | undefined,
+		entry: HarnessMessage,
+		outcome: "ok" | "error",
+		extra: { reason?: string; error?: string; ms?: number } = {},
+	): Promise<void> {
+		if (entry.kind !== "msg" && entry.kind !== "raw") return;
+		const record: MessageRecord = {
+			direction: entry.direction,
+			peer: entry.peer,
+			addr: entry.addr,
+			network: entry.network,
+			...(entry.id === undefined ? {} : { id: entry.id }),
+			...(entry.thread === undefined || entry.thread === entry.id ? {} : { thread: entry.thread }),
+			...(entry.re === undefined ? {} : { re: entry.re }),
+			kind: entry.kind,
+			body: entry.body,
+			outcome,
+			...(extra.reason === undefined ? {} : { reason: extra.reason }),
+			...(extra.error === undefined ? {} : { error: extra.error }),
+			...(extra.ms === undefined ? {} : { ms: extra.ms }),
+		};
+		const what = `the message ${entry.direction === "sent" ? "to" : "from"} ${entry.peer} on ${entry.network}`;
+		if (transport === undefined) {
+			this.ring.note(`# network: ${what} was not recorded: no program is attached`);
+			return;
+		}
+		if (transport !== this.transport) {
+			this.ring.note(`# network: ${what} was not recorded: the program it was for went away meanwhile`);
+			return;
+		}
+		try {
+			if (!(await transport.recordMessage(record))) {
+				this.ring.note(`# network: ${what} was not recorded: the program's stub does not record messages`);
+			}
+		} catch (error) {
+			this.ring.note(`# network: ${what} was not recorded: ${errorMessage(error)}`);
+		}
+	}
+
+	private remember(entry: HarnessMessage): void {
+		this.messageLog.push(entry);
+		if (this.messageLog.length > MESSAGE_KEEP) this.messageLog.splice(0, this.messageLog.length - MESSAGE_KEEP);
+	}
+
 	// -----------------------------------------------------------------------
 	// Attach and detach
 	// -----------------------------------------------------------------------
@@ -210,6 +442,26 @@ export class Harness {
 			this._mode = transport.hello.mode;
 			const content = await transport.content();
 			this._identity = content.identity;
+			// the run's network (section 7): found or started, joined when the environment hands it an invite;
+			// a declared `required` network that cannot be had refuses the attach here
+			const previous = this.net;
+			this.net = undefined;
+			this.netAbsent = undefined;
+			const outcome = await connectNetwork({
+				env: this.env,
+				program: transport.hello.name,
+				declared: manifest.network,
+				current: previous,
+				spawn: this.spawn,
+				note: (text) => this.ring.note(text),
+			});
+			if (this.closed) {
+				// shut down while the network was being connected: what was started goes, nothing is kept
+				await outcome.network?.stop();
+				throw new Error("the harness was shut down during attach");
+			}
+			this.net = outcome.network;
+			this.netAbsent = outcome.network ? undefined : outcome.absent;
 			// every decision the program offers, by default: policy forbid is never asked (sections 5.4 and 10), and a
 			// program may offer a harness fewer than it declares (hello.claimable)
 			const offered = manifest.decisions.filter((d) => d.policy !== "forbid").map((d) => d.name);
@@ -224,6 +476,8 @@ export class Harness {
 			this.wire(transport);
 			// a program at a touchpoint spoke before any of this: the transport held it, and delivers it now
 			transport.start?.();
+			// the mailboxes are read while a program can record what arrives; what comes between waits in the daemon
+			this.net?.startMail((message, membership) => this.onMessage(message, membership));
 		} catch (error) {
 			this.lastError = errorMessage(error);
 			if (this.transport === transport) this.transport = undefined;
@@ -248,6 +502,8 @@ export class Harness {
 	}
 
 	private detached(reason: string): void {
+		// no program to record what arrives: the mailboxes are left to the daemon until the next attach
+		if (this.net) void this.net.stopMail().catch(() => {});
 		for (const waiter of this.detachWaiters.splice(0)) waiter();
 		try {
 			this.onDetach?.(reason);
@@ -263,6 +519,9 @@ export class Harness {
 	shutdown(reason: string): void {
 		this.closed = true;
 		this.detach(reason);
+		const net = this.net;
+		this.net = undefined;
+		if (net) void net.stop().catch(() => {});
 		this.stopPolling();
 		if (this.budgetTimer !== undefined) {
 			clearTimeout(this.budgetTimer);
@@ -506,12 +765,15 @@ export class Harness {
 	 * transcript like an event; it wakes the agent when `wake` says so or the
 	 * name always does.
 	 */
-	observed(name: string, payload: Record<string, unknown>, wake = false): void {
+	observed(name: string, payload: Record<string, unknown>, wake: boolean | "never" = false, line?: string): void {
 		// a line of the harness's own: it carries the sequence of the last program event before it, like a note,
 		// so the program's numbering (and `since`) is never disturbed by what the launcher saw
 		const event: TransportEvent = { seq: this.ring.lastSeq, name, payload, truncated: false, ts: this.now() };
 		this.ring.push(event);
-		if (wake || ALWAYS_WAKE.has(name) || this.options.wakes.includes(name)) this.wake("event", this.eventLine(event));
+		if (wake === "never") return;
+		if (wake || ALWAYS_WAKE.has(name) || this.options.wakes.includes(name)) {
+			this.wake("event", line ?? this.eventLine(event));
+		}
 	}
 
 	/**
@@ -890,6 +1152,9 @@ export class Harness {
 			transcriptLines: this.ring.size,
 			lastError: this.lastError,
 			...(this.launcher === undefined ? {} : { launch: this.launcher.state() }),
+			...(this.net === undefined ? {} : { network: this.net.status }),
+			...(this.netAbsent === undefined ? {} : { networkAbsence: this.netAbsent }),
+			...(this.net === undefined ? {} : { messages: { ...this.messageCounts } }),
 		};
 	}
 
@@ -900,6 +1165,7 @@ export class Harness {
 			return `abai: not attached${status.lastError ? ` (${status.lastError})` : ""}`;
 		const parts = [`abai: ${status.program.name} ${status.program.connection}`];
 		if (status.launch) parts.push(status.launch.running ? `launched pid ${status.launch.pid}` : "launched, exited");
+		for (const m of status.network?.memberships ?? []) parts.push(`net ${m.member}@${m.network}`);
 		if (status.pending.length > 0) parts.push(`pending ${status.pending.length}`);
 		if (status.turns.length > 0) parts.push(`turns ${status.turns.length}`);
 		if (status.watches.length > 0) parts.push(`watches ${status.watches.length}`);
@@ -917,6 +1183,7 @@ export class Harness {
 			manifest,
 			mode: this.promptMode(manifest),
 			options: this.options,
+			network: this.promptNetwork(manifest),
 			addendum,
 		});
 	}
@@ -929,11 +1196,125 @@ export class Harness {
 			manifest,
 			mode: this.promptMode(manifest),
 			options: this.options,
+			network: this.promptNetwork(manifest),
 		});
 	}
 
 	/** The mode the prompt names: the program's selection, or its default before any attach (a manifest given to the constructor). */
 	private promptMode(manifest: Manifest): string {
 		return this._mode ?? manifest.modes[0] ?? "unknown";
+	}
+
+	/** What the prompt says of the network: the memberships, or why a declared network is absent; nothing when neither. */
+	private promptNetwork(manifest: Manifest): PromptNetwork | undefined {
+		const doc = manifest.network?.doc;
+		if (this.net) {
+			return {
+				...(doc === undefined ? {} : { doc }),
+				memberships: this.net.promptMemberships.map((m) => ({
+					network: m.network,
+					member: m.member,
+					addr: m.addr,
+				})),
+			};
+		}
+		if (manifest.network) {
+			return {
+				...(doc === undefined ? {} : { doc }),
+				absent: this.netAbsent ?? "no membership yet",
+				declared: true,
+			};
+		}
+		// nothing declared, but the environment asked for a network the run could not have
+		if (this.netAbsent !== undefined) return { absent: this.netAbsent, declared: false };
+		return undefined;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Messages over the run's network
+// ---------------------------------------------------------------------------
+
+/** How many messages `abai_messages` can reach back to, and how much of a body the wake line shows. */
+export const MESSAGE_KEEP = 200;
+export const MESSAGE_PREVIEW = 300;
+
+function pickMembership(memberships: NetworkMembership[], named: string | undefined): NetworkMembership {
+	if (memberships.length === 0) throw new Error("this run holds no membership on its network");
+	const names = memberships.map((m) => m.network).join(", ");
+	if (named === undefined) {
+		if (memberships.length === 1) return memberships[0] as NetworkMembership;
+		throw new Error(`this run is on several networks (${names}); say which with network`);
+	}
+	const found = memberships.find((m) => m.network === named || m.id === named);
+	if (!found) throw new Error(`this run is not on a network named ${named}; it is on ${names}`);
+	return found;
+}
+
+/** What a received payload says, as one string: the body of a msg or a raw payload, a note for the rest. */
+function summarize(sorted: Classified): string {
+	switch (sorted.kind) {
+		case "raw":
+			return sorted.body;
+		case "foreign":
+			return `(${sorted.note})`;
+		case "msg":
+			return sorted.envelope.body ?? "";
+		case "profile":
+			return `(profile ${JSON.stringify(sorted.envelope.profile ?? {})})`;
+		case "profile-query":
+			return "(profile query)";
+		case "receipt":
+			return `(receipt: ${sorted.envelope.receipt?.of ?? "?"} ${sorted.envelope.receipt?.status ?? ""})`;
+		default:
+			return "";
+	}
+}
+
+function messagePayload(m: HarnessMessage): Record<string, unknown> {
+	return {
+		from: m.peer,
+		body: m.body,
+		network: m.network,
+		kind: m.kind,
+		...(m.id === undefined ? {} : { id: m.id }),
+		...(m.thread === undefined ? {} : { thread: m.thread }),
+		...(m.re === undefined ? {} : { re: m.re }),
+		addr: m.addr,
+		...(m.claimed === undefined ? {} : { claimed: m.claimed }),
+	};
+}
+
+/** The wake line: who, where, and the body up to the preview; the rest is behind abai_messages. */
+function messageLine(m: HarnessMessage): string {
+	const body =
+		m.body.length > MESSAGE_PREVIEW
+			? `${m.body.slice(0, MESSAGE_PREVIEW)}… (${m.body.length - MESSAGE_PREVIEW} more characters; abai_messages has the whole)`
+			: m.body;
+	const who = m.claimed === undefined ? m.peer : `${m.peer} (claims ${m.claimed})`;
+	const kind = m.kind === "msg" ? "" : ` kind=${m.kind}`;
+	const thread = m.thread === undefined || m.thread === m.id ? "" : ` thread=${m.thread}`;
+	return `abai.net.message from=${who} network=${m.network}${kind}${thread}: ${body}`;
+}
+
+/** The daemon's refusal of a send, in the agent's words. */
+function sendFailure(error: unknown, to: string, network: string): string {
+	if (!(error instanceof AiipError)) return errorMessage(error);
+	switch (error.status) {
+		case 404:
+			return /no known peer|not confirmed/i.test(error.message)
+				? `no member named ${to} on ${network}; abai_peers lists them (${error.message})`
+				: error.message;
+		case 409:
+			return `the name ${to} is ambiguous on ${network}: ${error.message}`;
+		case 502:
+			return `${to} refused the message: ${error.message.replace(/^peer refused message: /, "")}`;
+		case 503:
+		case 504:
+			return `${to} could not be reached: its daemon is not running or has no route (${error.message})`;
+		case 0:
+			return `the network daemon did not answer: ${error.message}`;
+		default:
+			return error.message;
 	}
 }

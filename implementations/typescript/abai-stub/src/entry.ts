@@ -344,7 +344,7 @@ export async function runEntry(app: Abaigram, args: string[], io: EntryIo = proc
 			case "config": {
 				const harness = await importHarnessModule(io.env, manifest);
 				if (!harness?.runConfig) return usage("config needs the harness package, which is not installed");
-				return await harness.runConfig(args.slice(2), io);
+				return await harness.runConfig(args.slice(2), io, { program: manifest.name });
 			}
 			case "mcp": {
 				// the program at its entry serves an MCP client: under sidecar through the binary on this

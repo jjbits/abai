@@ -6,8 +6,9 @@ in a browser; the agent reads the ship's senses through cells and flies
 it through three setpoint knobs and a few capabilities. If the agent stops
 reading or steering, the ship crashes.
 
-The manual a coding agent follows to fly it is `../../MANUAL.md`. This
-file is for a person reading the code.
+The manual a coding agent follows to fly it is `MANUAL.md` at the root of
+the abai repository, https://github.com/jjbits/abai. This file is for a
+person reading the code.
 
 ```
 npm install                            # the stub, the harness and abaikit, from npm
@@ -17,6 +18,15 @@ node src/main.ts abai doctor --offline # the manifest, the content, the modes
 npm test                               # the suite
 npm run check                          # abaikit check .: conformance with no model
 ```
+
+Installed from its npm tarball (`npm install -g ornithopter-<version>.tgz`,
+from a release at https://git.gearedagents.com/abaigrams/ornithopter), the
+same commands run from any directory as `ornithopter`, `ornithopter --demo`
+and `ornithopter abai doctor --offline`. The tarball carries the program
+compiled to JavaScript (`npm run build`, into `dist/`): Node runs TypeScript
+as it is only outside `node_modules`, and an installed package lives inside.
+The arena, where ships fly together in a browser with no install, is
+https://ornithopter.gearedagents.com.
 
 A pilot reaches the running game through the abai harness's MCP server.
 From a shell, `node supervise.mjs --target <pid> prompt` attaches, makes

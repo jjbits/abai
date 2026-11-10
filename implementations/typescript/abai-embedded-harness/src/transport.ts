@@ -3,7 +3,7 @@
 // it is handed one. Two bindings exist: direct, in-process, over the stub's
 // HarnessBinding (turns and thread modes), and socket, over wire protocol
 // v1 (sidecar mode). Both carry the same meaning for every channel.
-import type { Consent, Manifest } from "@abaigram/abai-stub";
+import type { Consent, Manifest, MessageRecord } from "@abaigram/abai-stub";
 
 export interface TransportHello {
 	name: string;
@@ -150,6 +150,15 @@ export interface StubTransport {
 	 * program declares them. The launcher's own operations are not here.
 	 */
 	lifecycle(op: string, reason: string, consent?: Consent): Promise<unknown>;
+	/**
+	 * One message the agent sent or received over the run's network, for the
+	 * program's audit log (section 10, the `messages` extension). False when
+	 * the program cannot record it: a stub without the extension. Throws when
+	 * the program refused or could not write the line.
+	 */
+	recordMessage(record: MessageRecord): Promise<boolean>;
+	/** Whether the program can record messages at all (the `messages` extension); a send is refused when it cannot. */
+	canRecordMessages(): boolean;
 	on<K extends keyof TransportListeners>(type: K, listener: TransportListeners[K]): () => void;
 	/**
 	 * The consumer has registered its listeners: deliver what the transport

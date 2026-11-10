@@ -50,7 +50,8 @@ export const app = createAbaigram(
 		entry: "node src/main.ts abai",
 		modes: ["sidecar", "turns"],
 		content: { identity: arena ? "abai/identity-arena.md" : "abai/identity.md", use: "abai/use.md" },
-		audit: { path: "./abai-audit.log" },
+		// the audit log at the stub's default, ~/.abai/audit/ornithopter.jsonl: a program installed under
+		// node_modules must not write beside its own files (the arena hands each ship its own path)
 		// a headless scripted flight, fast-forward: what abaikit check runs
 		check: { run: "node src/main.ts --demo" },
 		cells: {

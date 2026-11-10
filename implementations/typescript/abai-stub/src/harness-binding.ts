@@ -7,7 +7,16 @@
 // the program side, as section 10 says, with the consent the harness states
 // for an act whose policy is `confirm`.
 import { resolve } from "node:path";
-import { AuditLog, type AuditOutcome, type AuditTail, capValue, summarizeAnswer } from "./audit.ts";
+import {
+	AUDIT_VALUE_CAP,
+	AuditLog,
+	type AuditOutcome,
+	type AuditTail,
+	capField,
+	capValue,
+	type MessageRecord,
+	summarizeAnswer,
+} from "./audit.ts";
 import { validateKnobValue } from "./cells/fit.ts";
 import { expandHome } from "./env.ts";
 import {
@@ -144,6 +153,14 @@ export interface HarnessBinding {
 	auditTail(limit: number): AuditTail;
 	/** Where the audit log is, and the error that latched it off, if any. */
 	auditInfo(): { path: string; failed: string | null };
+	/**
+	 * One message the agent sent to or received from a member of the run's
+	 * network (section 10): written to the audit log as `act: message`. Not
+	 * an act of control: no policy, no consent, no counter. Every string of
+	 * the record is cut to a bound first. False when nothing was written: the
+	 * log is closed (the binding detached) or has failed.
+	 */
+	recordMessage(record: MessageRecord, conn?: string): boolean;
 	takeCounters(): CounterSnapshot;
 	on<K extends keyof BindingEvents>(type: K, listener: BindingEvents[K]): () => void;
 	/** Answer a pending decision; `null` means "apply the default" with this reason. Throws when the answer is invalid. */
@@ -500,6 +517,35 @@ export class DirectBinding implements HarnessBinding, AttachedHarness {
 		});
 		record("ok");
 		return result;
+	}
+
+	recordMessage(record: MessageRecord, conn?: string): boolean {
+		const cut = (value: string | undefined, cap?: number): string | undefined =>
+			value === undefined ? undefined : capField(value, cap);
+		const thread = cut(record.thread);
+		const re = cut(record.re);
+		const reason = cut(record.reason, AUDIT_VALUE_CAP);
+		const error = cut(record.error, AUDIT_VALUE_CAP);
+		const id = cut(record.id);
+		return this.audit.append({
+			conn: conn ?? this.connection,
+			act: "message",
+			name: capField(record.peer),
+			...(id === undefined ? {} : { id }),
+			params: {
+				direction: record.direction,
+				network: capField(record.network),
+				addr: capField(record.addr),
+				kind: record.kind,
+				...(thread === undefined ? {} : { thread }),
+				...(re === undefined ? {} : { re }),
+			},
+			value: capValue(record.body),
+			outcome: record.outcome,
+			...(reason === undefined ? {} : { reason }),
+			...(error === undefined ? {} : { error }),
+			...(typeof record.ms === "number" && Number.isFinite(record.ms) ? { ms: record.ms } : {}),
+		});
 	}
 
 	auditTail(limit: number): AuditTail {

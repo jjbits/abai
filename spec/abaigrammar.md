@@ -528,6 +528,8 @@ program nothing.
 Sources:
 
 - an event declared with `wakes`, delivered edge-triggered as in 5.1;
+- a message from a member of the run's network (section 7), treated as an
+  event whose `wakes` is `always`;
 - a watch on a cell, found by the harness's bounded polling;
 - a decision, which always wakes;
 - input from the user;
@@ -540,10 +542,10 @@ Rules:
 - Wakes that arrive while the agent is mid-step are coalesced and delivered
   together at the next step.
 - The manifest may declare an attention `budget`: maximum wakes per period
-  and maximum model tokens per period. Beyond the budget, event and watch
-  wakes are folded into a summary and logged, a `turn` returns at once
-  with nothing done and is audited with reason `budget`, and decisions
-  still wake.
+  and maximum model tokens per period. Beyond the budget, event, message
+  and watch wakes are folded into a summary and logged, a `turn` returns
+  at once with nothing done and is audited with reason `budget`, and
+  decisions still wake.
 
 ### 5.7 Outside observation
 
@@ -553,6 +555,10 @@ status, and resource use. These arrive as `abai.io.stdout` and
 `abai.io.stderr` line events and `abai.lifecycle.exited`. This is the
 observation floor. It exists even for a program with an empty manifest,
 which is what makes abaify's first rung cheap.
+
+A message from a member of the run's network (section 7) is an outside
+observation too, whether or not the harness launched the program: it
+arrives as the event `abai.net.message` and wakes as 5.6 says.
 
 Cost: the program writes to a pipe instead of a terminal. The kernel pipe
 buffer is the only backpressure, and a reader that stops would block the
@@ -704,10 +710,27 @@ attention:
   budget: { wakes_per_minute: 30, tokens_per_hour: 200000 }
 policy:
   confirm_timeout: 60s     # a confirm unanswered this long is denied
+network:                   # optional: the agent may be a member of an agent network
+  required: false          # true: a run with no membership attaches no agent
+  doc: "..."               # how members of the network relate to this program's own names
 audit:
   path: ./abai-audit.log
 deviations: []             # optional: where the instantiation departs from this contract, one sentence each
 ```
+
+`network` says the program's agent may meet the agents of other programs
+on a network. Its `doc` is what the agent reads to connect the members it
+sees to the program's own names and events; for a game it might say that
+a member's name is a ship's callsign. A message from a member reaches the
+agent as the event `abai.net.message`, with the sender's name as the
+network's authority issued it; the agent sends to a member by that name
+through the harness's send tool; both are audited (section 10). The
+contract stops there: which network layer, how a run becomes a member,
+how members are named and the envelope a message travels in are the
+instantiation's (section 14); what the agents say to each other is the
+program's content. `required` binds the real harness only: the null
+harness attaches regardless, and no conformance level needs a network
+(section 12).
 
 An example with one of each declaration:
 
@@ -836,9 +859,10 @@ starts and in its report. Under an MCP client, section 4.5 says what
 consent is.
 
 The audit log records every knob write with its outcome, capability call,
-decision answer with its source and reason, turn with its outcome, and
-lifecycle operation, with timestamps and the agent's stated reason. Its
-location is declared in the manifest. While no harness is attached the
+decision answer with its source and reason, turn with its outcome,
+lifecycle operation, and message sent to or received from a member of the
+run's network with that member's name, with timestamps and the agent's
+stated reason. Its location is declared in the manifest. While no harness is attached the
 stub keeps only counters: one per decision and per turn, incremented once
 per defaulted decision or skipped turn, and one for mode fallback at
 startup. The next harness to attach reads the counters, resets them, and
@@ -1098,11 +1122,16 @@ an agent drives from outside, are subcommands only.
 - The reference machine for 11.6.
 - The form of the report the null harness gives at exit, and how `check`
   reads it; a checker judges programs of its own instantiation.
+- The agent network layer behind the manifest's `network`, how a run
+  becomes a member, where the verbs for that live, what `doctor` checks
+  of it, and the envelope a message travels in.
 
 ## 15. Open questions
 
 - Several agents on one program, or one agent across several programs. Out
-  of scope for 0.1.
+  of scope for 0.1. Agents of different programs meeting on a network:
+  see `network` (section 7); what they say to each other is the program's
+  content.
 - Whether `turn` content slots should carry their own attention budget.
 - Whether a knob write should carry an expiry, after which the program
   reverts the knob to its default.

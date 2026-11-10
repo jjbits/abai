@@ -15,7 +15,7 @@ content:
   identity: abai/identity.md
   use: abai/use.md
 audit:
-  path: ./abai-audit.log
+  path: ~/.abai/audit/ornithopter.jsonl
 lifecycle:
   pause: none
   stop:

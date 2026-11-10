@@ -91,6 +91,8 @@ interface Fake {
 	stall: Set<string>;
 	/** The value of queue.depth. */
 	depth: number;
+	/** When set, record_message is refused with this error and code "error". */
+	recordMessageError: string | undefined;
 	push(message: unknown): void;
 	/** Push an event; `seq` overrides the next number (a host-wide gap). */
 	event(name: string, payload: Line, seq?: number): void;
@@ -145,6 +147,7 @@ function fakeEndpoint(): Promise<Fake> {
 		withHello: [],
 		stall: new Set(),
 		depth: 3,
+		recordMessageError: undefined,
 		push: (message) => {
 			current?.write(`${JSON.stringify(message)}\n`);
 		},
@@ -232,6 +235,19 @@ function fakeEndpoint(): Promise<Fake> {
 			case "coded":
 				fake.push({ type: "response", id, command: type, success: false, error: "no such job", code: "invalid" });
 				return;
+			case "record_message":
+				if (fake.recordMessageError !== undefined) {
+					fake.push({
+						type: "response",
+						id,
+						command: type,
+						success: false,
+						error: fake.recordMessageError,
+						code: "error",
+					});
+					return;
+				}
+				return respond(id, type, {});
 			case "lifecycle":
 				if (command.op === "status") {
 					return respond(id, type, {
@@ -663,6 +679,87 @@ describe("SocketTransport over wire v1", () => {
 		transport.start();
 		await expect(transport.lifecycle("status", "look")).rejects.toMatchObject({ code: "unknown" });
 		expect(fake.lines.some(isRequest("lifecycle"))).toBe(false);
+		transport.close("done");
+	});
+
+	test("a message's audit line crosses as record_message under the messages extension", async () => {
+		const fake = await fakeEndpoint();
+		fake.extensions = ["turns", "call_codes", "messages"];
+		const transport = await SocketTransport.connect(fake.socketPath);
+		transport.start();
+		const record = {
+			direction: "sent" as const,
+			peer: "beta",
+			addr: "100.64.0.2",
+			network: "world",
+			kind: "msg" as const,
+			body: "hi",
+			outcome: "ok" as const,
+			reason: "r",
+		};
+		expect(await transport.recordMessage(record)).toBe(true);
+		const request = await fake.next(isRequest("record_message"));
+		expect(request.command).toMatchObject({ type: "record_message", direction: "sent", peer: "beta", reason: "r" });
+		transport.close("done");
+	});
+
+	test("a program without the messages extension is not sent record_message", async () => {
+		const fake = await fakeEndpoint();
+		fake.extensions = ["turns"];
+		const transport = await SocketTransport.connect(fake.socketPath);
+		transport.start();
+		expect(
+			await transport.recordMessage({
+				direction: "received",
+				peer: "beta",
+				addr: "100.64.0.2",
+				network: "world",
+				kind: "msg",
+				body: "hi",
+				outcome: "ok",
+			}),
+		).toBe(false);
+		await sleep(20);
+		expect(fake.lines.some(isRequest("record_message"))).toBe(false);
+		transport.close("done");
+	});
+
+	test("canRecordMessages follows the hello's extensions", async () => {
+		const speaking = await fakeEndpoint();
+		speaking.extensions = ["messages"];
+		const yes = await SocketTransport.connect(speaking.socketPath);
+		yes.start();
+		expect(yes.canRecordMessages()).toBe(true);
+		yes.close("done");
+		const silent = await fakeEndpoint();
+		silent.extensions = ["turns"];
+		const no = await SocketTransport.connect(silent.socketPath);
+		no.start();
+		expect(no.canRecordMessages()).toBe(false);
+		no.close("done");
+	});
+
+	test("a refused record_message is a TransportCallError with the program's code and words", async () => {
+		const fake = await fakeEndpoint();
+		fake.extensions = ["messages"];
+		fake.recordMessageError = "the audit log is closed";
+		const transport = await SocketTransport.connect(fake.socketPath);
+		transport.start();
+		const failure = await transport
+			.recordMessage({
+				direction: "sent",
+				peer: "beta",
+				addr: "100.64.0.2",
+				network: "world",
+				kind: "msg",
+				body: "hi",
+				outcome: "ok",
+				reason: "r",
+			})
+			.catch((error: unknown) => error);
+		expect(failure).toBeInstanceOf(TransportCallError);
+		expect((failure as TransportCallError).code).toBe("error");
+		expect((failure as TransportCallError).message).toMatch(/record_message: the audit log is closed/);
 		transport.close("done");
 	});
 

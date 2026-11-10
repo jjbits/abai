@@ -16,6 +16,48 @@ const base: ComposeInput["options"] = { form: "session", auto: false, denyMutate
 const compose = (options: Partial<typeof base> = {}, mode = "turns") =>
 	composeSystemPrompt({ identity: IDENTITY, manifest, mode, options: { ...base, ...options } });
 
+describe("the network paragraph", () => {
+	const net = { doc: "Members are ships.", memberships: [{ network: "world", member: "beta", addr: "100.107.0.3" }] };
+	const absent = { doc: "Members are ships.", absent: "no membership in /x", declared: true };
+	const withNetwork = (network: ComposeInput["network"], form: "session" | "mcp" = "session") =>
+		composeSystemPrompt({ identity: IDENTITY, manifest, mode: "turns", options: { ...base, form }, network });
+
+	test("names the run's memberships with the program's doc, and lists abai_peers among the detached tools", () => {
+		const text = withNetwork(net);
+		expect(text).toContain(
+			"This run is beta (100.107.0.3) on the network world. Members are ships. abai_peers lists the members and who is reachable now",
+		);
+		expect(text).toContain("abai_status, abai_attach, abai_peers, abai_messages, the transcript");
+		expect(text).toContain("abai_audit, abai_send) fail");
+		expect(text).toContain("abai_send answers a member by name");
+		expect(text.indexOf("This run is beta")).toBeLessThan(text.indexOf("# The program:"));
+	});
+
+	test("says why a declared network is absent, and says nothing when none is declared", () => {
+		expect(withNetwork(absent)).toContain(
+			"The program declares a network. Members are ships. This run has none: no membership in /x. abai_peers says so too.",
+		);
+		expect(compose()).not.toContain("abai_peers");
+		expect(compose()).not.toContain("network");
+		// absent: the detached-tools line does not promise abai_peers
+		expect(withNetwork(absent)).not.toContain("abai_attach, abai_peers,");
+		expect(withNetwork(absent)).not.toContain("abai_send");
+		expect(withNetwork({ absent: "no aiip binary found", declared: false })).toContain(
+			"This run was given a network to join (ABAI_NET_DIR or ABAI_NET_TOKEN) but has none: no aiip binary found. abai_peers says so too.",
+		);
+	});
+
+	test("the instructions mention abai_peers only for a run that is on a network", () => {
+		const instructions = (network: ComposeInput["network"]) =>
+			composeInstructions({ identity: IDENTITY, manifest, mode: "turns", options: base, network });
+		expect(instructions(net)).toContain(
+			"abai_peers lists who is on this run's network; a member's message wakes you as abai.net.message, and abai_send answers it.",
+		);
+		expect(instructions(absent)).not.toContain("abai_peers");
+		expect(instructions(undefined)).not.toContain("abai_peers");
+	});
+});
+
 describe("composeSystemPrompt", () => {
 	test("contains the identity, every declaration with its doc, the waking events and the rules", () => {
 		const text = compose();

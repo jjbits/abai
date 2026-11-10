@@ -16,9 +16,11 @@ export const PROTOCOL_VERSION = 1;
  * apply the decision's default, audited as a default; a v1-core host has no
  * such answer, so the client sends it the manifest default instead),
  * `lifecycle` (the `lifecycle {op}` command of section 5.5 and a cause on
- * `turn_end`).
+ * `turn_end`), `messages` (the `record_message` command: the harness hands
+ * the stub one message sent or received over the run's network for the
+ * audit log, section 10).
  */
-export const EXTENSIONS = ["consent", "content", "turns", "call_codes", "defaults", "lifecycle"] as const;
+export const EXTENSIONS = ["consent", "content", "turns", "call_codes", "defaults", "lifecycle", "messages"] as const;
 export type Extension = (typeof EXTENSIONS)[number];
 
 /** Why a request failed, in the capability error vocabulary (the `call_codes` extension). */

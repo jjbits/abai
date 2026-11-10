@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // ornithopter: a flying game whose only pilot is the agent fused into it.
 // Node 22.19 and later run this file as it is (node src/main.ts). The stub
 // is handed the standard agent entry on every invocation; the program's own

@@ -1,7 +1,7 @@
 /** The abai embedded harness. See spec/abaigrammar.md, section 4. */
 
 export { type AgentModel, SessionForm, type SessionFormOptions, toAgentTool } from "./agent.ts";
-export { type CliIo, doctorOnline, type OnlineCheck, runConfig } from "./cli.ts";
+export { type CliIo, type ConfigContext, doctorOnline, type OnlineCheck, runConfig } from "./cli.ts";
 export {
 	type AbaiConfig,
 	abaiHome,
@@ -17,6 +17,7 @@ export { attachEmbedded, type Embedded, type EmbeddedOptions, serveMcpEmbedded }
 export { Harness, type HarnessDeps, type HarnessStatus } from "./harness.ts";
 export { MCP_MAX_LINE_BYTES, MCP_PROTOCOL_VERSIONS, MCP_SERVER_NAME, type McpDeps, serveMcp } from "./mcp.ts";
 export { createModelSetup, ModelNotConfigured, type ModelSetup, resolveConfiguredModel } from "./model/index.ts";
+export * from "./net/index.ts";
 export {
 	DEFAULT_WAIT_MAX_S,
 	defaultOptions,

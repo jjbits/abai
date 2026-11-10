@@ -220,7 +220,7 @@ describe("the MCP server's protocol", () => {
 		expect((await w.request("ping")).result).toEqual({});
 	});
 
-	test("tools/list names the MCP form's fourteen tools with JSON Schema inputs", async () => {
+	test("tools/list names the MCP form's seventeen tools with JSON Schema inputs", async () => {
 		const w = await world();
 		const listed = (await w.request("tools/list")).result as { tools: Array<{ name: string; inputSchema: Line }> };
 		expect(listed.tools.map((t) => t.name)).toEqual([
@@ -235,6 +235,9 @@ describe("the MCP server's protocol", () => {
 			"abai_timer",
 			"abai_audit",
 			"abai_lifecycle",
+			"abai_peers",
+			"abai_send",
+			"abai_messages",
 			"abai_attach",
 			"abai_wait",
 			"abai_prompt",

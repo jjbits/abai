@@ -10,7 +10,7 @@
 // file carries the detached behaviour and the seams the binding fills.
 import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fitValue } from "./cells/fit.ts";
 import { type ContentSlots, createContent, findRoot } from "./content.ts";
 import { Endpoint } from "./endpoint.ts";
@@ -934,8 +934,9 @@ export const ENV_HARNESS_MODULE = "ABAI_HARNESS_MODULE";
 
 /**
  * The harness binary to spawn under sidecar: `ABAI_HARNESS_BIN` (a script
- * path runs under this very node), else the program's own
- * `node_modules/.bin/abai-embedded-harness`, else the name on PATH.
+ * path runs under this very node), else the nearest
+ * `node_modules/.bin/abai-embedded-harness` from the program's root
+ * upward, else the name on PATH.
  */
 export function harnessBinary(env: NodeJS.ProcessEnv, root: string): { command: string; args: string[] } {
 	const explicit = env[ENV_HARNESS_BIN]?.trim();
@@ -944,9 +945,29 @@ export function harnessBinary(env: NodeJS.ProcessEnv, root: string): { command: 
 			? { command: process.execPath, args: [explicit] }
 			: { command: explicit, args: [] };
 	}
-	const local = join(root, "node_modules", ".bin", "abai-embedded-harness");
-	if (existsSync(local)) return { command: local, args: [] };
+	const installed = installedHarnessBinary(root);
+	if (installed !== undefined) return { command: installed, args: [] };
 	return { command: "abai-embedded-harness", args: [] };
+}
+
+/**
+ * The installed harness's bin link: under the program's root, else under the
+ * nearest ancestor that has one, the way Node resolves a package. npm hoists
+ * a workspace's packages and their bin links to the workspace root, so a
+ * program that is one package of a workspace has no `.bin` of its own. When
+ * no manifest was found the root is the working directory, and the walk is
+ * the one Node would make for a module imported from there.
+ */
+function installedHarnessBinary(root: string): string | undefined {
+	let dir = resolve(root);
+	let candidate = join(dir, "node_modules", ".bin", "abai-embedded-harness");
+	while (!existsSync(candidate)) {
+		const parent = dirname(dir);
+		if (parent === dir) return undefined;
+		dir = parent;
+		candidate = join(dir, "node_modules", ".bin", "abai-embedded-harness");
+	}
+	return candidate;
 }
 
 /** What the stub uses of the installed harness package. */
@@ -957,6 +978,8 @@ export interface HarnessModule {
 	runConfig?: (
 		args: string[],
 		io: { out(text: string): void; err(text: string): void; env: NodeJS.ProcessEnv },
+		/** The program the entry runs for, so `config net` finds its network directory. */
+		context?: { program?: string },
 	) => Promise<number>;
 	doctorOnline?: (
 		manifest: Manifest,

@@ -1,9 +1,22 @@
 {
-	"extends": "../../implementations/typescript/tsconfig.base.json",
 	"compilerOptions": {
+		"target": "ES2022",
+		"module": "Node16",
+		"lib": ["ES2022"],
+		"strict": true,
+		"verbatimModuleSyntax": true,
+		"erasableSyntaxOnly": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"moduleResolution": "Node16",
+		"resolveJsonModule": true,
+		"allowImportingTsExtensions": true,
+		"rewriteRelativeImportExtensions": true,
+		"types": ["node"],
 		"noEmit": true,
 		"rootDir": "."
 	},
 	"include": ["src/**/*.ts", "test/**/*.ts"],
-	"exclude": ["node_modules", "**/*.d.ts"]
+	"exclude": ["node_modules", "dist", "**/*.d.ts"]
 }

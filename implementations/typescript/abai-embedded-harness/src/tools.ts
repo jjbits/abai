@@ -316,6 +316,40 @@ export const HARNESS_TOOLS: readonly HarnessToolSpec[] = [
 		},
 	}),
 	spec({
+		name: "abai_peers",
+		description:
+			"Who is on this run's agent network (abaigrammar section 7, network): for each membership, this run's member name and address, and every member the network's authority issued, with whether it is enrolled (an authenticated frame from it has been seen), reachable now (a tunnel from here exists), and self. A name is the one the authority issued; a name a member only claims about itself comes as claimedName and does not route. The program's manifest says how members relate to its own names. Works when detached from the program; may take up to 40 s per network when its authority is unreachable; fails when this run has no network.",
+		parameters: Type.Object({}),
+		forms: BOTH,
+		run: async (harness) => pretty(await harness.peers()),
+	}),
+	spec({
+		name: "abai_send",
+		description:
+			"Send a message to a member of this run's agent network, by the name the network's authority issued (abai_peers lists them) or by address. The message travels in an aiap v1 envelope, and the act is written to the program's audit log with your reason. thread continues a conversation (the first message's id); re names the message this answers. Fails in plain words when the member is unknown, unreachable or refuses; needs an attached program. The program's manifest says what members are to it and what to say to them.",
+		parameters: Type.Object({
+			to: Type.String({ minLength: 1, description: "The member's issued name, or its address" }),
+			body: Type.String({ minLength: 1, description: "What to say, up to 64 KiB" }),
+			reason: Type.String({ minLength: 1 }),
+			thread: Type.Optional(Type.String({ description: "The conversation's id: the first message's id" })),
+			re: Type.Optional(Type.String({ description: "The id of the message this answers" })),
+			network: Type.Optional(Type.String({ description: "Which network, when this run is on several" })),
+		}),
+		forms: BOTH,
+		run: async (harness, params) => pretty(await harness.send(params)),
+	}),
+	spec({
+		name: "abai_messages",
+		description:
+			"The messages this run sent and received over its network since attach, oldest first (the last 200 are kept): direction, the counterpart's issued name and address, id, thread, kind and the whole body. A message's wake line shows a preview; this has the rest. Works when detached.",
+		parameters: Type.Object({
+			network: Type.Optional(Type.String()),
+			limit: Type.Optional(Type.Integer({ minimum: 1, description: "Keep only the newest this many" })),
+		}),
+		forms: BOTH,
+		run: async (harness, params) => pretty(harness.messages(params)),
+	}),
+	spec({
 		name: "abai_attach",
 		description:
 			"Attach to a running program by socket path or pid, or to the one running program when no target is given; also reattaches after a disconnect.",

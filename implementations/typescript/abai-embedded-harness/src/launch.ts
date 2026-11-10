@@ -21,6 +21,7 @@ import {
 	shortSocketPath,
 } from "@abaigram/abai-stub";
 import type { Harness, Launcher, LaunchState } from "./harness.ts";
+import { withoutInviteToken } from "./net/dir.ts";
 import { TransportCallError } from "./transport.ts";
 import { SocketTransport } from "./transport-socket.ts";
 
@@ -174,7 +175,7 @@ export class LaunchedProgram implements Launcher {
 		if (command === undefined) throw new Error("run needs a program command");
 		const child = spawn(command, args, {
 			cwd: this.options.cwd,
-			env: { ...process.env, ...(this.options.env ?? {}), [ENV_LAUNCH_SOCKET]: socketPath, [ENV_MODE]: "sidecar" },
+			env: launchEnvironment(process.env, this.options.env, socketPath),
 			stdio: ["ignore", "pipe", "pipe"],
 		});
 		this.child = child;
@@ -408,4 +409,17 @@ export class LaunchedProgram implements Launcher {
 	async shutdown(reason: string): Promise<void> {
 		if (this.running) await this.stop(reason, "auto");
 	}
+}
+
+/**
+ * The launched program's environment: this process's, the launch options' on
+ * top, the launch socket and sidecar mode, and no invite token: the launcher
+ * is the member of the network, the program is not.
+ */
+export function launchEnvironment(
+	base: NodeJS.ProcessEnv,
+	extra: NodeJS.ProcessEnv | undefined,
+	socketPath: string,
+): NodeJS.ProcessEnv {
+	return withoutInviteToken({ ...base, ...(extra ?? {}), [ENV_LAUNCH_SOCKET]: socketPath, [ENV_MODE]: "sidecar" });
 }

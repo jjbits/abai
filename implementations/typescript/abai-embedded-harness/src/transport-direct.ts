@@ -2,7 +2,7 @@
 // stub's HarnessBinding (abaigrammar section 6.1 and 6.2). Every channel is
 // a function call; nothing crosses a boundary. Claims are a no-op: the stub
 // asks the harness every declared decision.
-import type { Consent, HarnessBinding } from "@abaigram/abai-stub";
+import type { Consent, HarnessBinding, MessageRecord } from "@abaigram/abai-stub";
 import type {
 	AuditData,
 	StubTransport,
@@ -164,6 +164,22 @@ export class DirectTransport implements StubTransport {
 		const outcome = this.binding.lifecycle(op, reason, consent);
 		if (!outcome.ok) throw new TransportCallError(outcome.code, outcome.error);
 		return outcome.data;
+	}
+
+	canRecordMessages(): boolean {
+		return true;
+	}
+
+	/** The binding writes the audit line itself; a line it could not write (its log closed or failed) is an error, as over the wire. */
+	async recordMessage(record: MessageRecord): Promise<boolean> {
+		this.assertOpen();
+		if (!this.binding.recordMessage(record)) {
+			throw new TransportCallError(
+				"error",
+				"record_message: the audit log is closed or failed: the message was not recorded",
+			);
+		}
+		return true;
 	}
 
 	endTouchpoint(id: string): void {

@@ -74,6 +74,24 @@ describe("validateManifest", () => {
 		]);
 		expect(violations(set("deviations", ["ok", ""]))).toEqual(["deviations: must be a list of non-empty strings"]);
 		expect(violations(set("check", {}))).toEqual(["check.run: is required when check is declared"]);
+		expect(
+			violations(set("network", { required: false, doc: "Peers are ships; a member's name is its callsign." })),
+		).toEqual([]);
+		expect(violations(set("network", {}))).toEqual(["network.doc: is required when network is declared"]);
+		expect(violations(set("network", { doc: " " }))).toEqual(["network.doc: is required when network is declared"]);
+		expect(violations(set("network", { doc: "x", required: "yes" }))).toEqual([
+			"network.required: must be a boolean",
+		]);
+		expect(violations(set("network", null))).toEqual(["network.doc: is required when network is declared"]);
+		expect(violations(set("network", ["x"]))).toEqual(["network.doc: is required when network is declared"]);
+		expect(violations(set("network", { doc: 5 }))).toEqual(["network.doc: is required when network is declared"]);
+		expect(violations(set("network", { required: true }))).toEqual([
+			"network.doc: is required when network is declared",
+		]);
+		expect(violations(set("network", { required: "yes" }))).toEqual([
+			"network.doc: is required when network is declared",
+			"network.required: must be a boolean",
+		]);
 		expect(violations(set("cells", "x"))).toEqual(["cells: must be a list"]);
 	});
 

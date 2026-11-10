@@ -1,8 +1,15 @@
-import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { abaiHome, DEFAULT_CONNECT_TIMEOUT_MS, FileCredentialStore, readConfig, writeConfig } from "../src/config.ts";
+import {
+	abaiHome,
+	CONFIG_FILE,
+	DEFAULT_CONNECT_TIMEOUT_MS,
+	FileCredentialStore,
+	readConfig,
+	writeConfig,
+} from "../src/config.ts";
 import { createModelSetup, ModelNotConfigured, resolveConfiguredModel } from "../src/model/index.ts";
 
 const dirs: string[] = [];
@@ -38,6 +45,16 @@ describe("the configuration directory", () => {
 			providers: { freetoken: { FREETOKEN_BASE_URL: "http://127.0.0.1:1919" } },
 		});
 		expect(statSync(join(dir, "config.json")).mode & 0o777).toBe(0o600);
+	});
+
+	test("the aiip binary setting is kept when it is a string and dropped otherwise", () => {
+		const dir = home();
+		writeConfig(dir, { connectTimeoutMs: 1, aiip: { bin: "/opt/aiip" } });
+		expect(readConfig(dir).aiip).toEqual({ bin: "/opt/aiip" });
+		writeFileSync(join(dir, CONFIG_FILE), JSON.stringify({ connectTimeoutMs: 1, aiip: { bin: 5 } }));
+		expect(readConfig(dir).aiip).toBeUndefined();
+		writeFileSync(join(dir, CONFIG_FILE), JSON.stringify({ connectTimeoutMs: 1, aiip: null }));
+		expect(readConfig(dir).aiip).toBeUndefined();
 	});
 
 	test("credentials live in a private file, read fresh, written through modify", async () => {

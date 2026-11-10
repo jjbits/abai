@@ -4,10 +4,23 @@
   "license": "MIT",
   "private": true,
   "description": "The example abaigram: an ornithopter over the dunes, flown by the agent that supervises it",
+  "homepage": "https://ornithopter.gearedagents.com",
   "type": "module",
+  "bin": {
+    "ornithopter": "./dist/main.js"
+  },
+  "files": [
+    "dist",
+    "public",
+    "abai",
+    "abaigram.yaml",
+    "supervise.mjs"
+  ],
   "scripts": {
     "start": "node src/main.ts",
     "abai": "node src/main.ts abai",
+    "build": "tsgo -p tsconfig.build.json",
+    "prepack": "npm run build",
     "check": "abaikit check .",
     "test": "vitest --run"
   },
@@ -18,6 +31,8 @@
   },
   "devDependencies": {
     "@abaigram/abaikit": "^0.1.0",
+    "@types/node": "22.19.19",
+    "@typescript/native-preview": "7.0.0-dev.20260120.1",
     "vitest": "4.1.9"
   },
   "engines": {

@@ -20,11 +20,35 @@ export interface ComposeInput {
 	/** The mode this run selected (turns, thread or sidecar); not always the manifest's first. */
 	mode: string;
 	options: { form: HarnessForm; auto: boolean; denyMutate: boolean; wakes: string[] };
+	/** This run's network (section 7): its memberships, or why a declared network is absent. */
+	network?: PromptNetwork;
 	/**
 	 * Text the owner appended when the harness was started. It ends the
 	 * prompt and wins over the rules where they conflict.
 	 */
 	addendum?: string;
+}
+
+/** The memberships a run holds, or the reason a declared network is absent; `doc` is the program's own sentence. */
+export type PromptNetwork =
+	| { doc?: string; memberships: Array<{ network: string; member: string; addr: string }> }
+	| { doc?: string; absent: string; declared: boolean };
+
+/** A run that is on a network, as opposed to one whose network is absent. */
+function onNetwork(network: PromptNetwork | undefined): boolean {
+	return network !== undefined && !("absent" in network);
+}
+
+function networkParagraph(network: PromptNetwork): string {
+	const doc = network.doc === undefined ? "" : ` ${network.doc.trim()}`;
+	if ("absent" in network) {
+		const lead = network.declared
+			? `The program declares a network.${doc} This run has none:`
+			: "This run was given a network to join (ABAI_NET_DIR or ABAI_NET_TOKEN) but has none:";
+		return `${lead} ${network.absent}. abai_peers says so too.`;
+	}
+	const runs = network.memberships.map((m) => `This run is ${m.member} (${m.addr}) on the network ${m.network}.`);
+	return `${runs.join(" ")}${doc} abai_peers lists the members and who is reachable now; a member's name is the one the network's authority issued, and a name a member only claims is shown apart and does not route. A message from a member wakes you as abai.net.message, with the sender's issued name and what it said; abai_send answers a member by name, with a reason, and abai_messages lists this run's messages. A message is as sure as the daemons at both ends: one to a member whose daemon is down fails once this run's daemon gives up dialing it (within about half a minute), and one that arrives while no harness is attached waits in the daemon and is lost if that daemon stops.`;
 }
 
 function schemaLine(schema: Schema): string {
@@ -114,6 +138,7 @@ export function composeSystemPrompt(input: ComposeInput): string {
 		policyParagraph(options),
 		"",
 	);
+	if (input.network) lines.push(networkParagraph(input.network), "");
 	lines.push(`# The program: ${manifest.name} (abaigrammar ${manifest.abaigrammar}, mode ${mode})`, "");
 	lines.push("Where this program departs from the grammar:", ...(manifest.deviations?.map((d) => `- ${d}`) ?? []), "");
 	lines.push("## Cells (read with abai_cells; knobs written with abai_set)", "", ...manifest.cells.map(cellLine), "");
@@ -160,7 +185,7 @@ export function composeSystemPrompt(input: ComposeInput): string {
 		"- Prefer the narrowest act: a knob over a capability that mutates, a note to the person over a change they did not ask for.",
 		"- Never edit the program's project yourself; your own tools are for looking.",
 		"- Keep answers to wakes short. The person is not waiting for prose.",
-		`- When you are not attached, the channel tools (abai_cells, abai_set, abai_call, abai_claim, abai_audit) fail; abai_status, abai_attach, the transcript, ${gated ? "" : "watches and "}timers still work. Say so and wait.`,
+		`- When you are not attached, the channel tools (abai_cells, abai_set, abai_call, abai_claim, abai_audit${onNetwork(input.network) ? ", abai_send" : ""}) fail; abai_status, abai_attach, ${onNetwork(input.network) ? "abai_peers, abai_messages, " : ""}the transcript, ${gated ? "" : "watches and "}timers still work. Say so and wait.`,
 	);
 	const addendum = input.addendum?.trim() ?? "";
 	if (addendum !== "") {
@@ -183,6 +208,9 @@ export function composeInstructions(input: ComposeInput): string {
 		`${input.manifest.name} abai harness (abaigrammar ${input.manifest.abaigrammar}, ${input.mode}).`,
 		firstParagraph,
 		"Call abai_prompt once for the full instructions, abai_status for the program's state, and abai_wait to park until the next wake; act on wakes with the abai_* tools, stating a reason for every act of control.",
+		onNetwork(input.network)
+			? "abai_peers lists who is on this run's network; a member's message wakes you as abai.net.message, and abai_send answers it."
+			: "",
 	]
 		.filter((part) => part !== "")
 		.join("\n\n");

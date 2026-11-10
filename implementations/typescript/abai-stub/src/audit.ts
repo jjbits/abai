@@ -11,7 +11,7 @@ import { closeSync, fstatSync, mkdirSync, openSync, readSync, writeSync } from "
 import { dirname } from "node:path";
 import { cutUtf8, type DecisionDecl } from "./manifest/manifest.ts";
 
-export type AuditAct = "capability" | "knob" | "decision" | "turn" | "lifecycle" | "counters";
+export type AuditAct = "capability" | "knob" | "decision" | "turn" | "lifecycle" | "counters" | "message";
 export type AuditOutcome = "ok" | "error" | "forbidden" | "agent" | "default" | "stub" | "failed";
 
 export interface AuditRecord {
@@ -42,8 +42,67 @@ export interface AuditRecord {
 	count?: number;
 }
 
+/**
+ * One message sent to or received from a member of the run's network
+ * (section 10), as the harness hands it to the stub for the audit log. The
+ * stub writes it as `act: message` with the counterpart's name as `name`,
+ * the envelope id as `id`, the body capped as `value`.
+ */
+export interface MessageRecord {
+	direction: "sent" | "received";
+	/** The counterpart's name as the network's authority issued it, else its address. */
+	peer: string;
+	addr: string;
+	network: string;
+	/** The envelope id, when the payload carried one. */
+	id?: string;
+	thread?: string;
+	re?: string;
+	/** `msg` is an aiap message; `raw` a plain payload with no envelope. */
+	kind: "msg" | "raw";
+	body: string;
+	outcome: "ok" | "error";
+	/** The agent's stated reason, for a send. */
+	reason?: string;
+	error?: string;
+	/** Milliseconds a send took. */
+	ms?: number;
+}
+
+function optionalString(value: unknown): boolean {
+	return value === undefined || typeof value === "string";
+}
+
+/** Whether a value is a `MessageRecord`: what the sidecar endpoint checks before it writes what a harness sent. */
+export function isMessageRecord(value: unknown): value is MessageRecord {
+	if (typeof value !== "object" || value === null) return false;
+	const r = value as Record<string, unknown>;
+	return (
+		(r.direction === "sent" || r.direction === "received") &&
+		typeof r.peer === "string" &&
+		typeof r.addr === "string" &&
+		typeof r.network === "string" &&
+		(r.kind === "msg" || r.kind === "raw") &&
+		typeof r.body === "string" &&
+		(r.outcome === "ok" || r.outcome === "error") &&
+		optionalString(r.id) &&
+		optionalString(r.thread) &&
+		optionalString(r.re) &&
+		optionalString(r.reason) &&
+		optionalString(r.error) &&
+		(r.ms === undefined || typeof r.ms === "number")
+	);
+}
+
 /** Bytes a string or the JSON of a value may take in a record before it is cut. */
 export const AUDIT_VALUE_CAP = 512;
+/** Bytes a name, an id or an address from the network may take in a message record. */
+export const AUDIT_FIELD_CAP = 256;
+
+/** A string the harness or the network supplied, cut to `maxBytes` for a record. */
+export function capField(value: string, maxBytes: number = AUDIT_FIELD_CAP): string {
+	return cutUtf8(value, maxBytes);
+}
 /** Bytes `tail` reads from the end of the file. */
 export const AUDIT_TAIL_BYTES = 1024 * 1024;
 
@@ -108,9 +167,9 @@ export class AuditLog {
 		return this._failed;
 	}
 
-	/** Append one record. Never throws; a no-op once the log failed or was closed. */
-	append(record: Omit<AuditRecord, "ts" | "pid">): void {
-		if (this._failed !== undefined || this.closed) return;
+	/** Append one record. Never throws; a no-op once the log failed or was closed. True when the line was written. */
+	append(record: Omit<AuditRecord, "ts" | "pid">): boolean {
+		if (this._failed !== undefined || this.closed) return false;
 		try {
 			if (this.fd === undefined) {
 				mkdirSync(dirname(this.path), { recursive: true, mode: 0o700 });
@@ -118,8 +177,10 @@ export class AuditLog {
 			}
 			const full: AuditRecord = { ts: new Date().toISOString(), pid: process.pid, ...record };
 			writeSync(this.fd, `${JSON.stringify(full)}\n`);
+			return true;
 		} catch (error) {
 			this.fail(errorMessage(error));
+			return false;
 		}
 	}
 

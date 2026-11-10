@@ -2,6 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
+import { capValue } from "../src/audit.ts";
 import { CallError, type DecisionRequest, type HarnessBinding, type LiveEvent } from "../src/harness-binding.ts";
 import { AbaigramAbort, createAbaigram } from "../src/program.ts";
 import { FLAG_WORK } from "../src/region.ts";
@@ -477,5 +478,116 @@ describe("cells, knobs and events through the binding", () => {
 		await app.decide("on_backlog");
 		const tail = binding.auditTail(10);
 		expect(tail.records.map((r) => (r as { act: string }).act)).toEqual(["knob", "decision"]);
+	});
+});
+
+describe("messages through the binding", () => {
+	test("a received message is one audit line with the counterpart's name", async () => {
+		const { binding, records } = await bind();
+		binding.recordMessage({
+			direction: "received",
+			peer: "alpha",
+			addr: "100.64.0.1",
+			network: "world",
+			id: "01JMSG0000000000000000ABCD",
+			thread: "01JTHREAD000000000000000AB",
+			kind: "msg",
+			body: "hello from alpha",
+			outcome: "ok",
+		});
+		const record = records().find((r) => r.act === "message");
+		expect(record).toMatchObject({
+			act: "message",
+			name: "alpha",
+			id: "01JMSG0000000000000000ABCD",
+			params: {
+				direction: "received",
+				network: "world",
+				addr: "100.64.0.1",
+				kind: "msg",
+				thread: "01JTHREAD000000000000000AB",
+			},
+			value: "hello from alpha",
+			outcome: "ok",
+		});
+		expect(record).not.toHaveProperty("reason");
+		expect(record).not.toHaveProperty("error");
+		expect(record).not.toHaveProperty("ms");
+		expect(record).not.toHaveProperty("consent");
+		expect(record?.conn).toBe("direct");
+		expect(record?.conn).toBe(binding.connection);
+	});
+
+	test("a sent message carries the reason and a capped body", async () => {
+		const { binding, records } = await bind();
+		const body = "x".repeat(2000);
+		binding.recordMessage(
+			{
+				direction: "sent",
+				peer: "beta",
+				addr: "100.64.0.2",
+				network: "world",
+				id: "01JSENT000000000000000ABCD",
+				kind: "msg",
+				body,
+				outcome: "ok",
+				reason: "greeting the neighbour",
+				ms: 12,
+			},
+			"k7",
+		);
+		const record = records().find((r) => r.act === "message");
+		expect(record).toMatchObject({
+			act: "message",
+			name: "beta",
+			conn: "k7",
+			outcome: "ok",
+			reason: "greeting the neighbour",
+			ms: 12,
+			params: { direction: "sent", kind: "msg" },
+		});
+		expect(record?.value).toEqual(capValue(body));
+		expect((record?.value as { truncated?: boolean }).truncated).toBe(true);
+	});
+	test("strings from the network are cut before they reach the log, and a closed log writes nothing", async () => {
+		const { binding, records } = await bind();
+		const long = "p".repeat(1000);
+		expect(
+			binding.recordMessage({
+				direction: "received",
+				peer: long,
+				addr: long,
+				network: long,
+				id: long,
+				thread: long,
+				re: long,
+				kind: "raw",
+				body: "x",
+				outcome: "error",
+				error: "e".repeat(2000),
+				reason: "r".repeat(2000),
+			}),
+		).toBe(true);
+		const record = records().find((r) => r.act === "message") as Record<string, unknown>;
+		const params = record.params as Record<string, string>;
+		expect(Buffer.byteLength(record.name as string)).toBeLessThanOrEqual(256);
+		expect(Buffer.byteLength(record.id as string)).toBeLessThanOrEqual(256);
+		for (const key of ["network", "addr", "thread", "re"])
+			expect(Buffer.byteLength(params[key] as string)).toBeLessThanOrEqual(256);
+		expect(Buffer.byteLength(record.reason as string)).toBeLessThanOrEqual(512);
+		expect(Buffer.byteLength(record.error as string)).toBeLessThanOrEqual(512);
+		binding.detach("done");
+		expect(
+			binding.recordMessage({
+				direction: "received",
+				peer: "alpha",
+				addr: "100.64.0.1",
+				network: "world",
+				kind: "msg",
+				body: "late",
+				outcome: "ok",
+			}),
+		).toBe(false);
+		expect(records().filter((r) => r.act === "message")).toHaveLength(1);
 	});
 });

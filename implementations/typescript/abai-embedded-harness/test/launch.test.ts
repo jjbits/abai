@@ -11,7 +11,7 @@ import { createModels, fauxAssistantMessage, fauxProvider } from "@arx-06/ai";
 import { afterEach, describe, expect, test } from "vitest";
 import { SessionForm } from "../src/agent.ts";
 import { Harness } from "../src/harness.ts";
-import { LaunchedProgram } from "../src/launch.ts";
+import { LaunchedProgram, launchEnvironment } from "../src/launch.ts";
 import { defaultOptions } from "../src/options.ts";
 import { SocketTransport } from "../src/transport-socket.ts";
 import { scriptedChannel } from "../src/user-channel.ts";
@@ -314,4 +314,23 @@ describe("sidecar launch", () => {
 		expect(harness.ring.last(10).map((l) => l.text)).toContain("abai.io.stdout line=plain program");
 		expect(program.state().exit).toEqual({ code: 4, signal: null });
 	}, 20_000);
+});
+
+describe("the launched program's environment", () => {
+	test("carries the launcher's environment and the launch options, the socket and the mode, and no invite token", () => {
+		const env = launchEnvironment(
+			{ PATH: "/usr/bin", ABAI_NET_TOKEN: "aiip-invite.secret", ABAI_HOME: "/base" },
+			{ ABAI_HOME: "/launch", TICK: "1" },
+			"/tmp/launch-1.sock",
+		);
+		expect(env).toEqual({
+			PATH: "/usr/bin",
+			ABAI_HOME: "/launch",
+			TICK: "1",
+			ABAI_LAUNCH_SOCKET: "/tmp/launch-1.sock",
+			ABAI_MODE: "sidecar",
+		});
+		// a token in the options is dropped too: the launcher is the member, not the program
+		expect(launchEnvironment({}, { ABAI_NET_TOKEN: "aiip-invite.x" }, "/s")).not.toHaveProperty("ABAI_NET_TOKEN");
+	});
 });

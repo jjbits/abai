@@ -136,7 +136,7 @@ describe("sidecar mode across two processes", () => {
 			modes: ["sidecar", "turns"],
 			pid: prog.child.pid,
 			connection: "k1",
-			extensions: ["consent", "content", "turns", "call_codes", "defaults", "lifecycle"],
+			extensions: ["consent", "content", "turns", "call_codes", "defaults", "lifecycle", "messages"],
 			claimable: ["on_backlog"],
 		});
 		const harness = new Harness(defaultOptions("session"));
@@ -202,6 +202,29 @@ describe("sidecar mode across two processes", () => {
 		expect(acts).toContain("decision:on_backlog:k1:default:answered");
 		expect(audit.records.find((r) => r.cause === "answered")).toMatchObject({ reason: "nothing to add" });
 		expect(acts).toContain("turn:end_of_batch:k1:ok:");
+
+		// the messages extension: a message's audit line is written by the program's stub under this connection
+		expect(
+			await transport.recordMessage({
+				direction: "received",
+				peer: "beta",
+				addr: "100.64.0.2",
+				network: "world",
+				kind: "msg",
+				body: "hello sidey",
+				outcome: "ok",
+			}),
+		).toBe(true);
+		expect(prog.records()).toContainEqual(
+			expect.objectContaining({
+				act: "message",
+				conn: "k1",
+				name: "beta",
+				params: expect.objectContaining({ direction: "received", network: "world", kind: "msg" }),
+				value: "hello sidey",
+				outcome: "ok",
+			}),
+		);
 
 		prog.send("exit");
 		const gone = await harness.nextDelivery(5000);

@@ -11,6 +11,7 @@ import type {
 	Extension,
 	HookMessage,
 	Manifest,
+	MessageRecord,
 	SubscriptionFilter,
 	WireErrorCode,
 	WireResponse,
@@ -51,6 +52,8 @@ const LIBRARY_COMMANDS = new Set([
 	"get_audit",
 	"get_cells",
 	"set_cell",
+	"lifecycle",
+	"record_message",
 ]);
 
 /** How many answered decision ids are remembered, to tell a rejected answer from a decision never asked. */
@@ -507,6 +510,30 @@ export class SocketTransport implements StubTransport {
 			throw new TransportCallError(code, `lifecycle ${op}: ${response.error}`);
 		}
 		return response.data;
+	}
+
+	canRecordMessages(): boolean {
+		return this.speaks("messages");
+	}
+
+	/** The `messages` extension: the audit line for a message over the run's network. False when the program lacks the extension. */
+	async recordMessage(record: MessageRecord): Promise<boolean> {
+		this.assertOpen();
+		if (!this.speaks("messages")) return false;
+		let response: WireResponse;
+		try {
+			response = await this.client.request(
+				{ type: "record_message", ...record },
+				{ timeoutMs: this.attachTimeoutMs },
+			);
+		} catch (error) {
+			throw requestFailure("record_message", error, this.client.isClosed);
+		}
+		if (!response.success) {
+			const code = isErrorCode(response.code) ? response.code : "error";
+			throw new TransportCallError(code, `record_message: ${response.error}`);
+		}
+		return true;
 	}
 
 	endTouchpoint(id: string): void {

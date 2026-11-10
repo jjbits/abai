@@ -20,6 +20,7 @@ import { existsSync, unlinkSync } from "node:fs";
 import { createServer, type Server, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { isMessageRecord } from "./audit.ts";
 import {
 	CallError,
 	type CallErrorCode,
@@ -560,6 +561,25 @@ export class Endpoint {
 						success: true,
 						data: { ...binding.auditInfo(), ...binding.auditTail(limit) },
 					};
+					break;
+				}
+				case "record_message": {
+					// the audit line for a message over the run's network (the `messages` extension): not an act of control
+					// the agent's reason rides the request envelope like every other act's, or sits in the record
+					const { type: _type, ...given } = command;
+					const record = given.reason === undefined && reason !== undefined ? { ...given, reason } : given;
+					if (!isMessageRecord(record)) {
+						response = this.failure(
+							id,
+							type,
+							"record_message needs direction, peer, addr, network, kind, body and outcome",
+							"invalid",
+						);
+						break;
+					}
+					response = binding.recordMessage(record, connection.id)
+						? { type: "response", id, command: type, success: true, data: {} }
+						: this.failure(id, type, "the audit log is closed or failed: the message was not recorded", "error");
 					break;
 				}
 				case "get_cells": {
