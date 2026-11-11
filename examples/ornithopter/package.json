@@ -25,12 +25,12 @@
     "test": "vitest --run"
   },
   "dependencies": {
-    "@abaigram/abai-embedded-harness": "^0.1.0",
-    "@abaigram/abai-stub": "^0.1.0",
+    "@abaigram/abai-embedded-harness": "^0.2.0",
+    "@abaigram/abai-stub": "^0.2.0",
     "three": "0.169.0"
   },
   "devDependencies": {
-    "@abaigram/abaikit": "^0.1.0",
+    "@abaigram/abaikit": "^0.2.0",
     "@types/node": "22.19.19",
     "@typescript/native-preview": "7.0.0-dev.20260120.1",
     "vitest": "4.1.9"
