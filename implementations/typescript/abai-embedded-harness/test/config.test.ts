@@ -1,6 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { builtinProviders } from "@arx-06/ai/providers/all";
 import { afterEach, describe, expect, test } from "vitest";
 import {
 	abaiHome,
@@ -10,7 +11,7 @@ import {
 	readConfig,
 	writeConfig,
 } from "../src/config.ts";
-import { createModelSetup, ModelNotConfigured, resolveConfiguredModel } from "../src/model/index.ts";
+import { authContextFor, createModelSetup, ModelNotConfigured, resolveConfiguredModel } from "../src/model/index.ts";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -113,6 +114,44 @@ describe("the configuration directory", () => {
 });
 
 describe("the configured model", () => {
+	test("every provider arx-06 carries is registered, FreeToken beside them, nothing else", () => {
+		const dir = home();
+		const ids = createModelSetup({ ABAI_HOME: dir }, dir)
+			.models.getProviders()
+			.map((p) => p.id);
+		const expected = [...builtinProviders().map((p) => p.id), "freetoken"];
+		expect(expected.length).toBeGreaterThanOrEqual(43);
+		expect([...ids].sort()).toEqual([...expected].sort());
+	});
+
+	test("a caller's extra provider is registered after the built-in ones", () => {
+		const dir = home();
+		const base = createModelSetup({ ABAI_HOME: dir }, dir).models.getProviders().length;
+		const scripted = { id: "scripted", name: "Scripted", auth: {}, getModels: () => [] };
+		const ids = createModelSetup({ ABAI_HOME: dir }, dir, [scripted as never])
+			.models.getProviders()
+			.map((p) => p.id);
+		expect(ids.length).toBe(base + 1);
+		expect(ids.at(-1)).toBe("scripted");
+	});
+
+	test("the providers' auth context: configuration before environment, files checked with ~ expanded", async () => {
+		const dir = home();
+		writeFileSync(join(dir, "adc.json"), "{}");
+		const ctx = authContextFor(
+			{ connectTimeoutMs: 1, providers: { x: { X_KEY: "from-config" } } },
+			{ HOME: dir, X_KEY: "from-env", Y_KEY: "env", EMPTY: "" },
+		);
+		expect(await ctx.env("X_KEY")).toBe("from-config");
+		expect(await ctx.env("Y_KEY")).toBe("env");
+		expect(await ctx.env("EMPTY")).toBeUndefined();
+		expect(await ctx.env("Z_KEY")).toBeUndefined();
+		expect(await ctx.fileExists("~/adc.json")).toBe(true);
+		expect(await ctx.fileExists("~/missing.json")).toBe(false);
+		expect(await ctx.fileExists(join(dir, "adc.json"))).toBe(true);
+		expect(await ctx.fileExists("~")).toBe(true);
+	});
+
 	test("nothing configured: attach would fail at once, without network", async () => {
 		const dir = home();
 		await expect(resolveConfiguredModel(createModelSetup({ ABAI_HOME: dir }, dir))).rejects.toBeInstanceOf(

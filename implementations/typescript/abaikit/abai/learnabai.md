@@ -438,9 +438,11 @@ The machine-level model configuration, shared by every abaigram on the
 machine, lives under `~/.abai/`:
 
 ```
-<entry> config set provider anthropic|freetoken
+<entry> config providers                   # every provider and the login it offers
+<entry> config set provider <id>
 <entry> config set model <id>
-<entry> config set key <provider>          # read without echo
+<entry> config login <provider>            # sign in with an account; --api-key for a key, --browser opens the URL
+<entry> config set key <provider>          # a key, read without echo
 <entry> config set url <provider> <base url>
 <entry> doctor                             # offline checks, then the model
 ```

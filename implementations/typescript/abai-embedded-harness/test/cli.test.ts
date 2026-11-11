@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { type CliIo, doctorOnline, runConfig } from "../src/cli.ts";
+import { anthropicProbeHeaders, type CliIo, doctorOnline, runConfig } from "../src/cli.ts";
 import { FileCredentialStore, readConfig } from "../src/config.ts";
 import { createModelSetup } from "../src/model/index.ts";
 import { AiipClient } from "../src/net/client.ts";
@@ -70,6 +70,9 @@ describe("abai config", () => {
 		const { cli, out, err } = capture(dir);
 		expect(await runConfig([], cli)).toBe(0);
 		expect(out.join("")).toContain("provider: (none)");
+		expect(await runConfig(["set", "provider", "nope"], cli)).toBe(2);
+		expect(err.join("\n")).toContain("unknown provider nope; config providers lists them");
+		expect(readConfig(dir).provider).toBeUndefined();
 		expect(await runConfig(["set", "provider", "anthropic"], cli)).toBe(0);
 		expect(await runConfig(["set", "model", "claude-opus-5"], cli)).toBe(0);
 		expect(await runConfig(["set", "connect-timeout", "5000"], cli)).toBe(0);
@@ -92,6 +95,18 @@ describe("abai config", () => {
 		expect(await runConfig(["set", "bogus", "1"], cli)).toBe(2);
 		expect(await runConfig(["set", "connect-timeout", "-1"], cli)).toBe(2);
 		expect(err.join("\n")).toMatch(/usage: abai config/);
+	});
+
+	test("providers lists every provider the harness knows, sorted, with the login each offers", async () => {
+		const { cli, out } = capture(home());
+		expect(await runConfig(["providers"], cli)).toBe(0);
+		const lines = out.join("").trimEnd().split("\n");
+		expect(lines.length).toBeGreaterThanOrEqual(43);
+		const ids = lines.map((line) => line.split(/\s+/)[0]);
+		expect(ids).toEqual([...ids].sort());
+		expect(lines.find((l) => l.startsWith("anthropic "))).toMatch(/login: account, key\s+Anthropic/);
+		expect(lines.find((l) => l.startsWith("openai-codex "))).toMatch(/login: account\s{2,}/);
+		expect(lines.find((l) => l.startsWith("freetoken "))).toMatch(/login: key\s{2,}/);
 	});
 });
 
@@ -248,6 +263,23 @@ describe("abai config net", () => {
 });
 
 describe("doctor's online half", () => {
+	test("the Anthropic probe sends a key as x-api-key and an account token as a bearer under the OAuth beta", () => {
+		expect(anthropicProbeHeaders({ apiKey: "sk-ant-api03-key" })).toEqual({
+			"anthropic-version": "2023-06-01",
+			"x-api-key": "sk-ant-api03-key",
+		});
+		expect(anthropicProbeHeaders({ apiKey: "sk-ant-oat01-token" })).toEqual({
+			"anthropic-version": "2023-06-01",
+			Authorization: "Bearer sk-ant-oat01-token",
+			"anthropic-beta": "oauth-2025-04-20",
+		});
+		expect(anthropicProbeHeaders({ apiKey: "k", headers: { Authorization: "Bearer theirs" } })).toEqual({
+			"anthropic-version": "2023-06-01",
+			Authorization: "Bearer theirs",
+		});
+		expect(anthropicProbeHeaders({})).toEqual({ "anthropic-version": "2023-06-01" });
+	});
+
 	test("fails with nothing configured, resolves a configured static model, probes its endpoint", async () => {
 		const dir = home();
 		const manifest = { model: { tools: true } } as never;

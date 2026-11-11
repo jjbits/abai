@@ -3,6 +3,7 @@
 // provider and model and the connect timeout; `credentials.json`, mode
 // 0600, holds one credential per provider in the shape the model layer
 // stores. `ABAI_HOME` relocates the directory (tests, several setups).
+import { randomUUID } from "node:crypto";
 import {
 	chmodSync,
 	closeSync,
@@ -35,6 +36,8 @@ export interface AbaiConfig {
 	providers?: Record<string, Record<string, string>>;
 	/** The aiip binary that runs this machine's network identities (abaigrammar section 7, `network`). */
 	aiip?: { bin?: string };
+	/** A stable id for this installation, made by the first login that asks for one (OpenAI's do). */
+	deviceId?: string;
 }
 
 /** The configuration directory: `ABAI_HOME`, else `~/.abai`. */
@@ -115,11 +118,21 @@ export function readConfig(home: string): AbaiConfig {
 		typeof (record.aiip as { bin?: unknown }).bin === "string"
 			? { aiip: { bin: (record.aiip as { bin: string }).bin } }
 			: {}),
+		...(typeof record.deviceId === "string" && record.deviceId !== "" ? { deviceId: record.deviceId } : {}),
 	};
 }
 
 export function writeConfig(home: string, config: AbaiConfig): void {
 	writePrivate(join(home, CONFIG_FILE), `${JSON.stringify(config, null, 2)}\n`);
+}
+
+/** This installation's device id: read from the configuration, else made once and kept there. */
+export function deviceIdFor(home: string): string {
+	const config = readConfig(home);
+	if (config.deviceId) return config.deviceId;
+	const deviceId = randomUUID();
+	writeConfig(home, { ...config, deviceId });
+	return deviceId;
 }
 
 /**

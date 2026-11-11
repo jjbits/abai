@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterAll, afterEach, describe, expect, test } from "vitest";
 import { runDoctor, runEntry } from "../src/entry.ts";
 import { createAbaigram } from "../src/program.ts";
 
@@ -12,11 +12,14 @@ const dirs: string[] = [];
 afterEach(() => {
 	for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
+// An empty configuration home: the machine's own ~/.abai may name a model, and a session with one runs for real.
+const emptyHome = mkdtempSync(join(tmpdir(), "entry-home-"));
+afterAll(() => rmSync(emptyHome, { recursive: true, force: true }));
 
 function run(args: string[], options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}) {
 	const result = spawnSync(process.execPath, [program, ...args], {
 		cwd: options.cwd ?? example,
-		env: { ...process.env, ABAI_MODE: "", ABAI_HARNESS: "", ...options.env },
+		env: { ...process.env, ABAI_MODE: "", ABAI_HARNESS: "", ABAI_HOME: emptyHome, ...options.env },
 		encoding: "utf8",
 		timeout: 20_000,
 	});

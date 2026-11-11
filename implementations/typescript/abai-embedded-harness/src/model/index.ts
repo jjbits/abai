@@ -1,10 +1,13 @@
-// The model layer (abaigrammar section 9): the providers the harness
-// knows, registered on a Models instance over the machine's credentials,
-// and the configured default model resolved into what the agent loop
-// needs. Provider-neutral in the grammar's sense: nothing is bundled, and a
-// program without a configured model attaches nothing.
-import { type AuthContext, createModels, type Model, type MutableModels } from "@arx-06/ai";
-import { anthropicProvider } from "@arx-06/ai/providers/anthropic";
+// The model layer (abaigrammar section 9): every provider arx-06 carries
+// and FreeToken, registered on a Models instance over the machine's
+// credentials, and the configured default model resolved into what the
+// agent loop needs. Provider-neutral in the grammar's sense: nothing is
+// bundled, and a program without a configured model attaches nothing.
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { type AuthContext, createModels, type Model, type MutableModels, type Provider } from "@arx-06/ai";
+import { builtinProviders } from "@arx-06/ai/providers/all";
 import type { AgentModel } from "../agent.ts";
 import { type AbaiConfig, abaiHome, FileCredentialStore, readConfig } from "../config.ts";
 import { createFreeTokenProvider, FREETOKEN_PROVIDER_ID } from "./freetoken/provider.ts";
@@ -18,8 +21,13 @@ export interface ModelSetup {
 	models: MutableModels;
 }
 
-/** Environment lookups the providers make, routed through the configuration first. */
-function authContext(config: AbaiConfig, env: NodeJS.ProcessEnv): AuthContext {
+/**
+ * What the providers ask about the machine: environment lookups routed
+ * through the configuration first, and whether a credentials file exists
+ * (Google's application-default credentials, AWS profiles), `~` expanded
+ * the way `ABAI_HOME` defaults.
+ */
+export function authContextFor(config: AbaiConfig, env: NodeJS.ProcessEnv): AuthContext {
 	const configured: Record<string, string> = {};
 	for (const settings of Object.values(config.providers ?? {})) Object.assign(configured, settings);
 	return {
@@ -27,18 +35,41 @@ function authContext(config: AbaiConfig, env: NodeJS.ProcessEnv): AuthContext {
 			const value = configured[name] ?? env[name];
 			return value === undefined || value === "" ? undefined : value;
 		},
-		fileExists: async () => false,
+		fileExists: async (path) => existsSync(expandHome(path, env)),
 	};
 }
 
-/** Build the Models instance for this machine: the configuration, the credential file, every known provider. */
-export function createModelSetup(env: NodeJS.ProcessEnv = process.env, home = abaiHome(env)): ModelSetup {
+function expandHome(path: string, env: NodeJS.ProcessEnv): string {
+	if (path !== "~" && !path.startsWith("~/")) return path;
+	const home = env.HOME && env.HOME !== "" ? env.HOME : homedir();
+	return join(home, path.slice(1));
+}
+
+/**
+ * Build the Models instance for this machine: the configuration, the
+ * credential file, every provider arx-06 carries, FreeToken, and any the
+ * caller adds (tests register a scripted one).
+ */
+export function createModelSetup(
+	env: NodeJS.ProcessEnv = process.env,
+	home = abaiHome(env),
+	extraProviders: readonly Provider[] = [],
+): ModelSetup {
 	const config = readConfig(home);
 	const credentials = new FileCredentialStore(home);
-	const models = createModels({ credentials, authContext: authContext(config, env) });
-	models.setProvider(anthropicProvider());
+	const models = createModels({ credentials, authContext: authContextFor(config, env) });
+	for (const provider of builtinProviders()) models.setProvider(provider);
 	models.setProvider(createFreeTokenProvider().provider);
+	for (const provider of extraProviders) models.setProvider(provider);
 	return { home, config, credentials, models };
+}
+
+/** The ids a configuration may name as its provider, sorted. */
+export function knownProviderIds(models: MutableModels): string[] {
+	return models
+		.getProviders()
+		.map((p) => p.id)
+		.sort();
 }
 
 export class ModelNotConfigured extends Error {

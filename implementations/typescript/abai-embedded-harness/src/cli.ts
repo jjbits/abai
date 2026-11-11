@@ -3,21 +3,43 @@
 // half checks the model. The stub delegates these to the installed harness
 // package; the sidecar binary offers them too. Never throws; resolves to
 // the exit code.
+import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { Writable } from "node:stream";
 import type { Manifest } from "@abaigram/abai-stub";
-import type { Credential } from "@arx-06/ai";
-import { type AbaiConfig, abaiHome, FileCredentialStore, readConfig, writeConfig } from "./config.ts";
-import { createModelSetup, FREETOKEN_PROVIDER_ID, ModelNotConfigured, resolveConfiguredModel } from "./model/index.ts";
+import type { AuthType, Credential, ModelAuth, Provider } from "@arx-06/ai";
+import {
+	type AbaiConfig,
+	abaiHome,
+	CREDENTIALS_FILE,
+	deviceIdFor,
+	FileCredentialStore,
+	readConfig,
+	writeConfig,
+} from "./config.ts";
+import { clean, type LoginTerminal, processTerminal, terminalInteraction } from "./login.ts";
+import {
+	createModelSetup,
+	FREETOKEN_PROVIDER_ID,
+	knownProviderIds,
+	ModelNotConfigured,
+	resolveConfiguredModel,
+} from "./model/index.ts";
 import { AiipClient, type AiipStatus, KNOWN_AIIP_API } from "./net/client.ts";
 import { ensureAiipDaemon, type SpawnFn, socketPathFor } from "./net/daemon.ts";
 import { aiipBinaryFor, ENV_NET_DIR, ENV_NET_TOKEN, networkDirFor } from "./net/dir.ts";
 import { membershipsOnDisk, type NetworkMembership, NO_BINARY, noMembership } from "./net/membership.ts";
 
-/** What the entry tells `config`: the program it runs for, so `config net` finds its network directory; tests inject a spawn. */
+/** What the entry tells `config`: the program it runs for, so `config net` finds its network directory; tests inject the rest. */
 export interface ConfigContext {
 	program?: string;
 	spawn?: SpawnFn;
+	/** Providers registered beside the built-in ones (tests script a login). */
+	providers?: Provider[];
+	/** The terminal a login talks to; the process's when absent. */
+	terminal?: LoginTerminal;
+	/** Cancels a login; the process's SIGINT when absent. */
+	signal?: AbortSignal;
 }
 
 export interface CliIo {
@@ -44,11 +66,13 @@ export interface OnlineCheck {
 
 const CONFIG_USAGE = [
 	"usage: abai config                               show the configuration",
-	"       abai config set provider <anthropic|freetoken>",
+	"       abai config providers                     every provider the harness knows and the login it offers",
+	"       abai config set provider <id>             one of those",
 	"       abai config set model <id>",
 	"       abai config set key <provider>            store a credential, read without echo (or from a pipe)",
 	"       abai config set key <provider> <api key>  the same, from the command line (lands in shell history)",
 	"       abai config set url <provider> <base url>  freetoken's server, or a proxy for anthropic",
+	"       abai config login <provider>              sign in with the provider's own flow; --api-key for a key, --browser opens the URL",
 	"       abai config set connect-timeout <ms>",
 	"       abai config set aiip-bin <path>            the aiip binary that runs this machine's network identities",
 	"       abai config unset key <provider>",
@@ -114,9 +138,12 @@ async function setConfig(args: string[], io: CliIo): Promise<number> {
 		return 0;
 	};
 	switch (what) {
-		case "provider":
+		case "provider": {
 			if (!a) return usage(io, "set provider needs a name");
+			if (!knownProviderIds(createModelSetup(io.env, home).models).includes(a))
+				return usage(io, `unknown provider ${a}; config providers lists them`);
 			return update({ provider: a });
+		}
 		case "model":
 			if (!a) return usage(io, "set model needs an id");
 			return update({ model: a });
@@ -164,19 +191,111 @@ async function unsetConfig(args: string[], io: CliIo): Promise<number> {
 	return 0;
 }
 
+/** The login a provider offers: an account sign-in, a key prompt, both, or neither (configured outside abai). */
+function loginKind(provider: Provider): string {
+	const account = provider.auth.oauth !== undefined;
+	const key = provider.auth.apiKey?.login !== undefined;
+	if (account && key) return "account, key";
+	if (account) return "account";
+	if (key) return "key";
+	return "none";
+}
+
+/** Account sign-in unless `--api-key`; a key prompt when that is all the provider has; else what configures it. */
+function loginType(provider: Provider, apiKey: boolean): AuthType | { problem: string } {
+	const hasKeyLogin = provider.auth.apiKey?.login !== undefined;
+	if (!apiKey && provider.auth.oauth) return "oauth";
+	if (hasKeyLogin) return "api_key";
+	if (apiKey && provider.auth.oauth)
+		return { problem: `${provider.name} has no API key login; omit --api-key to sign in` };
+	const method = provider.auth.apiKey?.name ?? "ambient credentials";
+	return { problem: `${provider.name} is configured outside abai (${method})` };
+}
+
+/**
+ * `abai config login <provider> [--api-key] [--browser]`: the provider's
+ * own sign-in, its prompts answered from the terminal, its credential
+ * stored by the library in this machine's credential file.
+ */
+async function loginConfig(args: string[], io: CliIo, context: ConfigContext): Promise<number> {
+	let id: string | undefined;
+	let apiKey = false;
+	let browser = false;
+	for (const arg of args) {
+		if (arg === "--api-key") apiKey = true;
+		else if (arg === "--browser") browser = true;
+		else if (arg.startsWith("-") || id !== undefined)
+			return usage(io, "login takes: <provider> [--api-key] [--browser]");
+		else id = arg;
+	}
+	if (id === undefined) return usage(io, "login needs a provider; config providers lists them");
+	const home = abaiHome(io.env);
+	const setup = createModelSetup(io.env, home, context.providers ?? []);
+	const provider = setup.models.getProviders().find((p) => p.id === id);
+	if (!provider) {
+		io.err(`abai config: no provider ${id}; config providers lists them`);
+		return 2;
+	}
+	const type = loginType(provider, apiKey);
+	if (typeof type !== "string") {
+		io.err(`abai config: ${type.problem}`);
+		return 2;
+	}
+	// Ctrl+C between prompts reaches the process; inside a prompt it reaches readline, which the terminal forwards as cancel.
+	const interrupt = new AbortController();
+	const onInterrupt = (): void => interrupt.abort(new Error("login cancelled"));
+	const terminal = context.terminal ?? processTerminal(onInterrupt);
+	if (!terminal.isTTY) {
+		io.err("abai config: login needs a terminal; a key can be piped to config set key");
+		return 2;
+	}
+	const signal = context.signal ?? interrupt.signal;
+	if (context.signal === undefined) process.once("SIGINT", onInterrupt);
+	try {
+		await setup.models.login(provider.id, type, terminalInteraction({ io, terminal, signal, browser }), {
+			getDeviceId: () => deviceIdFor(home),
+			agentName: "abai",
+		});
+	} catch (error) {
+		// the provider's error can run to many lines (a response body, a stack): the first line, cleaned
+		const reason = clean(errorMessage(error).split("\n")[0]);
+		if (signal.aborted) io.err("abai config: login cancelled");
+		else io.err(`abai config: could not sign in to ${provider.name}: ${reason}`);
+		return 1;
+	} finally {
+		process.removeListener("SIGINT", onInterrupt);
+	}
+	const done = type === "oauth" ? `signed in to ${provider.name}` : `stored a key for ${provider.name}`;
+	io.out(`${done}; credential in ${join(home, CREDENTIALS_FILE)}\n`);
+	if (setup.config.provider !== provider.id) io.out(`to use it: abai config set provider ${provider.id}\n`);
+	return 0;
+}
+
+/** `abai config providers`: one line per provider the harness knows, sorted by id. */
+function listProviders(io: CliIo): number {
+	const providers = [...createModelSetup(io.env).models.getProviders()].sort((x, y) => x.id.localeCompare(y.id));
+	const width = Math.max(0, ...providers.map((p) => p.id.length));
+	for (const p of providers) io.out(`${p.id.padEnd(width)}  login: ${loginKind(p).padEnd(12)}  ${p.name}\n`);
+	return 0;
+}
+
 function usage(io: CliIo, problem?: string): number {
 	if (problem !== undefined) io.err(`abai config: ${problem}`);
 	for (const line of CONFIG_USAGE) io.err(line);
 	return 2;
 }
 
-/** `abai config [show|set ...|unset ...|net ...]`. */
+/** `abai config [show|providers|login ...|set ...|unset ...|net ...]`. */
 export async function runConfig(args: string[], io: CliIo = processIo, context: ConfigContext = {}): Promise<number> {
 	try {
 		switch (args[0]) {
 			case undefined:
 			case "show":
 				return await showConfig(io);
+			case "providers":
+				return listProviders(io);
+			case "login":
+				return await loginConfig(args.slice(1), io, context);
 			case "set":
 				return await setConfig(args.slice(1), io);
 			case "unset":
@@ -439,7 +558,25 @@ async function networkChecks(manifest: Manifest, env: NodeJS.ProcessEnv): Promis
 	return checks;
 }
 
-/** One cheap authenticated request to a static provider: the key and the endpoint are real. A dynamic provider was already reached. */
+/**
+ * The headers of the probe's one GET to Anthropic with the resolved auth.
+ * An account token (the login's `sk-ant-oat…`) goes as a bearer under the
+ * OAuth beta, the way the library sends it; a key goes as `x-api-key`;
+ * auth the provider already put in headers is left alone.
+ */
+export function anthropicProbeHeaders(auth: ModelAuth): Record<string, string> {
+	const headers: Record<string, string> = { "anthropic-version": "2023-06-01", ...(auth.headers ?? {}) };
+	if (!auth.apiKey || headers.Authorization || headers["x-api-key"]) return headers;
+	if (auth.apiKey.includes("sk-ant-oat")) {
+		headers.Authorization = `Bearer ${auth.apiKey}`;
+		headers["anthropic-beta"] = "oauth-2025-04-20";
+	} else {
+		headers["x-api-key"] = auth.apiKey;
+	}
+	return headers;
+}
+
+/** One cheap authenticated request to a static provider: the credential and the endpoint are real. A dynamic provider was already reached. */
 async function probe(
 	setup: ReturnType<typeof createModelSetup>,
 	provider: string,
@@ -454,8 +591,7 @@ async function probe(
 		const auth = await setup.models.getAuth(provider);
 		if (!auth) return { name: "reachable", status: "fail", detail: "no auth resolved" };
 		const base = (auth.auth.baseUrl ?? baseUrl).replace(/\/$/, "");
-		const headers: Record<string, string> = { "anthropic-version": "2023-06-01", ...(auth.auth.headers ?? {}) };
-		if (auth.auth.apiKey && !headers.Authorization && !headers["x-api-key"]) headers["x-api-key"] = auth.auth.apiKey;
+		const headers = anthropicProbeHeaders(auth.auth);
 		const response = await fetch(`${base}/v1/models?limit=1`, { headers, signal: AbortSignal.timeout(timeoutMs) });
 		if (response.ok) return { name: "reachable", status: "ok", detail: `${base} answered ${response.status}` };
 		return {

@@ -33,8 +33,8 @@
 	},
 	"dependencies": {
 		"@abaigram/abai-stub": "0.2.0",
-		"@arx-06/agent": "0.87.1",
-		"@arx-06/ai": "0.87.1",
+		"@arx-06/agent": "1.5.2",
+		"@arx-06/ai": "1.5.2",
 		"typebox": "1.3.27"
 	},
 	"engines": {

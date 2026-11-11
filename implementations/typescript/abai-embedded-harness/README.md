@@ -5,14 +5,19 @@ in the [abai repository](https://github.com/jjbits/abai), shipped as a
 library for the in-process turns and thread modes and as the sidecar binary
 `abai-embedded-harness`. A program installs it beside the stub with
 `npm install @abaigram/abai-stub @abaigram/abai-embedded-harness`. It
-consumes `@arx-06/ai` and `@arx-06/agent` from npm, published from the
-tarballs in the repository's `implementations/typescript/vendor/`, and
-generalizes the harness core ported from arx-06.
+consumes `@arx-06/ai`, `@arx-06/agent` and their `@arx-06/pi-schema` from
+npm, published from the tarballs in the repository's
+`implementations/typescript/vendor/`, and generalizes the harness core
+ported from arx-06.
 
 A model is configured once per machine under `~/.abai/` (`<prog> abai
-config`): Anthropic, or a FreeToken server. Nothing in conformance needs
-one; the MCP server (`abai mcp`) serves a client such as Claude Code with
-no model at all.
+config`): any of the 42 providers arx-06 1.5.2 carries, with an API key or
+an account login where the provider offers one (`<prog> abai config
+providers` lists them), or a FreeToken server. `<prog> abai config login
+<provider>` runs the provider's own sign-in from the terminal: the URL is
+printed, and opened in the browser only with `--browser`; `--api-key`
+stores a key instead. Nothing in conformance needs a model; the MCP server
+(`abai mcp`) serves a client such as Claude Code with no model at all.
 
 A program that declares `network` in its manifest puts its agent on an
 aiip network, an overlay network for agents. The harness talks to aiip's
