@@ -197,6 +197,21 @@ fn run_verb(app: &Abaigram, args: &[String], io: &mut EntryIo) -> std::io::Resul
             }
             Ok(if ran { 0 } else { 1 })
         }
+        Some(verb)
+            if (verb == "run" || HARNESS_VERBS.contains(&verb))
+                && matches!(
+                    app.harness_selection(),
+                    crate::env::HarnessSelection::Null | crate::env::HarnessSelection::Exercise
+                ) =>
+        {
+            // the null harness holds the program: the real one cannot
+            // take it as well
+            writeln!(
+                io.err,
+                "{entry}: {verb} needs the real harness, and ABAI_HARNESS selects the null harness"
+            )?;
+            Ok(1)
+        }
         Some("run") => {
             // `run -- ARGS`: everything after the dashes is the program's
             let args = match rest.first().map(String::as_str) {

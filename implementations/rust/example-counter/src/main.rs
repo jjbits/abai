@@ -103,6 +103,9 @@ fn declarations(state: &Arc<State>) -> Declarations {
         "30s",
         "After each thousand ticks.",
     ))
+    // what `abaikit-rs check` runs: the default run counts to its limit,
+    // which reaches the decision and the turn, and ends
+    .check_run("cargo run -q -p example-counter")
 }
 
 /// The value after a flag such as `--ticks`, when it is a number.

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["abai-stub", "abai-harness", "example-counter"]
+members = ["abai-stub", "abai-harness", "abaikit", "example-counter"]
 
 [workspace.package]
 version = "0.1.0"

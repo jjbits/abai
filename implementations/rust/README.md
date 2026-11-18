@@ -10,7 +10,11 @@ pair: a Rust program takes the Rust harness, and nothing else.
 |---|---|
 | `abai-stub` | The library a program includes to become an abaigram. No HTTP, no model code. |
 | `abai-harness` | The agent's half: a library a program can link, and the binary `abai-harness`. |
+| `abaikit` | The authoring tool, the binary `abaikit-rs`: `check` and `learnabai`. |
 | `example-counter` | A small abaigram that declares one of everything. |
+
+`learnabai.md` is the guide a coding agent follows to make a Rust
+abaigram or retrofit a Rust program; `abaikit-rs learnabai` prints it.
 
 ## A program
 
@@ -145,9 +149,10 @@ From the contract, on purpose:
   declarations, not before `main()`.
 - A program built with `panic = "abort"` cannot survive a panic in the
   harness thread, so it must not declare thread mode.
-- There is no null harness and no `check`, so no conformance level is
-  reported for a Rust abaigram yet. `ABAI_HARNESS=off` works; `null` and
-  `exercise` are refused.
+- The null harness (`ABAI_HARNESS=null` and `exercise`) stays in the
+  program's process in every mode and has no thread of its own. It works
+  on the program's thread, inside `attach()`, touchpoints and safepoints,
+  and reads events only then.
 - Keys are in a file, not the system credential store.
 - `status` does not report the program's resource use.
 
@@ -155,11 +160,27 @@ From the TypeScript harness:
 
 - No account logins, and two API shapes instead of every provider.
 - The model's answer is taken whole, not streamed.
-- There is no `abaikit` for Rust: no `new`, `abaify`, `check` or
-  `learnabai`.
+- The authoring tool is `abaikit-rs`, with `check` and `learnabai`
+  only: no `new`, `abaify` or `run`. It is not an abaigram itself.
 - The MCP server must be attached to a program when it starts.
 - Running programs are listed in `~/.abai/run-rust/`.
 - Sidecar mode needs a Unix system.
+
+## Checking an abaigram
+
+```
+abaikit-rs check <repo> [--level N] [--mode M] [--runs N] [--timeout S] [--json]
+abaikit-rs learnabai [--section ID] [--json] [--skill]
+```
+
+`check` gives a repository its conformance level (contract section 12)
+with no model. It runs the entry for level 1, then the manifest's
+`check.run` under the null harness in each declared mode for levels 2 to
+4, and measures the overhead with the null harness attached. A program
+gets it by declaring `.check_run("<a short command>")`; the example
+does, and reaches level 4.
+
+`learnabai --skill` installs the guide as the skill `learnabai-rust`.
 
 ## Building and testing
 
@@ -172,7 +193,7 @@ cargo test --workspace
 
 The suite needs no network and no model: the model is a local server
 with scripted answers, and the aiip daemon is a fake. It takes about
-20 seconds once built.
+35 seconds once built.
 
 The cost rules of the contract's section 11 are tested by counting
 allocations (`abai-stub/tests/cost.rs`).

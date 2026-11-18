@@ -10,6 +10,8 @@ modes:
   - turns
   - thread
   - sidecar
+check:
+  run: cargo run -q -p example-counter
 content:
   identity: abai/identity.md
   use: abai/use.md
@@ -21,7 +23,7 @@ lifecycle:
     graceful: "5s"
     handler: stop
 deviations:
-  - "No null harness: ABAI_HARNESS=null and ABAI_HARNESS=exercise are refused, and no checker judges a Rust abaigram yet, so no conformance level is reported (sections 11.6 and 12)."
+  - "The null harness (ABAI_HARNESS=null and exercise) stays in the program's process in every mode and has no thread of its own: no endpoint opens under sidecar mode, it works on the program's thread inside attach(), touchpoints and safepoints, and it reads events only then, so a check measures neither the socket nor a harness thread, and events that lap the ring between those moments are reported as dropped (section 11.6)."
   - "In thread mode a panic on the harness thread is caught and the program runs on as itself; a program built with panic = \"abort\" has no such isolation and must not declare thread mode (section 6.2)."
   - Under launch the program is attached when it builds its declarations, the first thing in main(), not before main() (section 6.3).
 cells:

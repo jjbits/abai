@@ -13,6 +13,7 @@ use crate::declare::{Declarations, DeclareError};
 use crate::env::{self, EnvFn, HarnessSelection, ModeSelection};
 use crate::link::{Embedded, Harness, InTouchpoint, Outcome, StubCore, Touch};
 use crate::manifest::{Manifest, Mode, duration_ms};
+use crate::null::{self, Form, NullHarness};
 use crate::region::calls::{self, Which};
 use crate::region::cells::{
     Cell, EnumCell, EnumKnob, HandleError, JsonCell, Knob, Scalar, TextCell,
@@ -26,6 +27,9 @@ struct Inner {
     harness: HarnessSelection,
     embedded: OnceLock<Box<dyn Embedded>>,
     attached: Mutex<Option<Arc<dyn Harness>>>,
+    /// The null harness, when `ABAI_HARNESS` selected it. It is attached
+    /// from startup to exit.
+    null: Option<Arc<NullHarness>>,
     attach_error: Mutex<Option<String>>,
     /// Sidecar mode: the endpoint a harness process connects to.
     #[cfg(unix)]
@@ -124,13 +128,22 @@ impl Inner {
     fn attach(&self) -> bool {
         match &self.harness {
             HarnessSelection::Real => {}
+            // attached at startup, in every mode. The program says the
+            // agent may act from here on, so the exercise's immediate
+            // calls may run now.
+            HarnessSelection::Null | HarnessSelection::Exercise => {
+                if let Some(null) = &self.null {
+                    null.pump(Some(Which::Immediate));
+                }
+                return true;
+            }
             HarnessSelection::Off => {
                 *lock(&self.attach_error) = Some("ABAI_HARNESS=off: nothing attaches".to_string());
                 return false;
             }
             HarnessSelection::Unsupported(value) => {
                 *lock(&self.attach_error) = Some(format!(
-                    "ABAI_HARNESS={value} is not supported (unset or off)"
+                    "ABAI_HARNESS must be unset, off, null or exercise (got {value})"
                 ));
                 return false;
             }
@@ -306,7 +319,14 @@ impl TurnPoint {
 impl Abaigram {
     /// Register the declarations. Reads `ABAI_MODE` and `ABAI_HARNESS` once.
     pub fn new(declarations: &Declarations) -> Result<Self, DeclareError> {
-        Self::with_env(declarations, &env::process_env)
+        let app = Self::with_env(declarations, &env::process_env)?;
+        // the exercise run tells a check what it saw when the process ends
+        if let Some(null) = &app.inner.null
+            && app.inner.harness == HarnessSelection::Exercise
+        {
+            null::report_at_exit(null);
+        }
+        Ok(app)
     }
 
     /// Register the declarations, reading the environment through `env`.
@@ -382,13 +402,22 @@ impl Abaigram {
             }
             None => None,
         };
+        // the null harness attaches now, at startup, and stays
+        let null = match harness {
+            HarnessSelection::Null => Some(Form::Passive),
+            HarnessSelection::Exercise => Some(Form::Exercise),
+            _ => None,
+        }
+        .map(|form| NullHarness::attach(core.clone(), form, env));
+        let attached: Option<Arc<dyn Harness>> = null.clone().map(|null| null as Arc<dyn Harness>);
         Ok(Self {
             inner: Arc::new(Inner {
                 core,
                 mode,
                 harness,
                 embedded: OnceLock::new(),
-                attached: Mutex::new(None),
+                attached: Mutex::new(attached),
+                null,
                 attach_error: Mutex::new(None),
                 #[cfg(unix)]
                 sidecar,
@@ -453,6 +482,12 @@ impl Abaigram {
         self.inner.core.region.attached()
     }
 
+    /// What the null harness has seen so far, in the form the exercise
+    /// run prints at exit. None when `ABAI_HARNESS` did not select it.
+    pub fn null_report(&self) -> Option<Value> {
+        self.inner.null.as_ref().map(|null| null.report())
+    }
+
     /// Why the last attach failed, if it did.
     pub fn attach_error(&self) -> Option<String> {
         lock(&self.inner.attach_error).clone()
@@ -483,6 +518,10 @@ impl Abaigram {
         }
         if calls::take_queued(region) {
             self.inner.core.serve(Which::Safepoint);
+        }
+        // the exercise takes what finished and posts what is still lined up
+        if let Some(null) = &self.inner.null {
+            null.pump(Some(Which::All));
         }
         #[cfg(unix)]
         if word & SAFEPOINT_PAUSED != 0

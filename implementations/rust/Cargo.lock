@@ -23,6 +23,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "abaikit"
+version = "0.1.0"
+dependencies = [
+ "abai-stub",
+ "libc",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

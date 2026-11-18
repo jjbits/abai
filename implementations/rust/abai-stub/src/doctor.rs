@@ -163,10 +163,12 @@ pub fn run_doctor(app: &Abaigram, options: &DoctorOptions) -> DoctorReport {
     checks.push(match app.harness_selection() {
         HarnessSelection::Real => check("harness", CheckStatus::Ok, "ABAI_HARNESS: real"),
         HarnessSelection::Off => check("harness", CheckStatus::Ok, "ABAI_HARNESS: off"),
+        HarnessSelection::Null => check("harness", CheckStatus::Ok, "ABAI_HARNESS: null"),
+        HarnessSelection::Exercise => check("harness", CheckStatus::Ok, "ABAI_HARNESS: exercise"),
         HarnessSelection::Unsupported(value) => check(
             "harness",
             CheckStatus::Fail,
-            format!("ABAI_HARNESS={value} is not supported (unset or off)"),
+            format!("ABAI_HARNESS must be unset, off, null or exercise (got {value})"),
         ),
     });
 
@@ -591,15 +593,32 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn an_unsupported_harness_fails() {
-        let dir = temp_dir("null-harness");
-        let pairs = [("ABAI_HARNESS", "null")];
+    fn the_null_harness_is_a_harness_doctor_knows() {
+        let dir = temp_dir("null-harness-ok");
+        for (value, said) in [
+            ("null", "ABAI_HARNESS: null"),
+            ("exercise", "ABAI_HARNESS: exercise"),
+        ] {
+            let pairs = [("ABAI_HARNESS", value)];
+            let report = run(&app_with(&pairs), None, &dir, &pairs);
+            assert_eq!(
+                status_of(&report, "harness"),
+                (CheckStatus::Ok, said.to_string())
+            );
+        }
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn an_unknown_harness_fails() {
+        let dir = temp_dir("unknown-harness");
+        let pairs = [("ABAI_HARNESS", "real")];
         let report = run(&app_with(&pairs), None, &dir, &pairs);
         assert_eq!(
             status_of(&report, "harness"),
             (
                 CheckStatus::Fail,
-                "ABAI_HARNESS=null is not supported (unset or off)".to_string()
+                "ABAI_HARNESS must be unset, off, null or exercise (got real)".to_string()
             )
         );
         assert!(!report.ok);

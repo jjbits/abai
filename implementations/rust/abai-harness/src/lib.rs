@@ -5,7 +5,6 @@
 
 pub mod agent;
 pub mod attention;
-pub mod audit;
 pub mod cli;
 #[cfg(unix)]
 pub mod command;
@@ -25,9 +24,10 @@ pub mod prompt;
 pub mod sidecar;
 pub mod terminal;
 mod thread;
-pub mod time;
 pub mod tools;
 
+// The audit log and the clock are the stub's: its null harness writes the log too.
+pub use abai_stub::{audit, time};
 pub use embedded::embedded;
 
 /// The version of this crate.

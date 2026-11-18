@@ -59,7 +59,11 @@ pub enum HarnessSelection {
     Real,
     /// `off`: no agent.
     Off,
-    /// Any other value, which this build does not support.
+    /// `null`: the null harness, attached and driving nothing.
+    Null,
+    /// `exercise`: the null harness, driving every knob and capability.
+    Exercise,
+    /// Any other value.
     Unsupported(String),
 }
 
@@ -69,6 +73,8 @@ pub fn select_harness(env: EnvFn) -> HarnessSelection {
     match value.as_deref() {
         None | Some("") => HarnessSelection::Real,
         Some("off") => HarnessSelection::Off,
+        Some("null") => HarnessSelection::Null,
+        Some("exercise") => HarnessSelection::Exercise,
         Some(other) => HarnessSelection::Unsupported(other.to_string()),
     }
 }
@@ -142,7 +148,15 @@ mod tests {
         );
         assert_eq!(
             select_harness(&with(ENV_HARNESS, "null")),
-            HarnessSelection::Unsupported("null".to_string())
+            HarnessSelection::Null
+        );
+        assert_eq!(
+            select_harness(&with(ENV_HARNESS, " exercise ")),
+            HarnessSelection::Exercise
+        );
+        assert_eq!(
+            select_harness(&with(ENV_HARNESS, "real")),
+            HarnessSelection::Unsupported("real".to_string())
         );
     }
 

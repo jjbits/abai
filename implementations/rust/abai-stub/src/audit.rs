@@ -1,5 +1,6 @@
 //! The audit log (contract section 10): one JSON line per act of control,
-//! written by the harness, readable back by the agent.
+//! written by the harness (the real one or the stub's null harness), readable
+//! back by the agent.
 
 use std::fs::{File, OpenOptions};
 use std::io::Write;
@@ -15,7 +16,7 @@ const TEXT_CAP: usize = 512;
 const VALUE_CAP: usize = 2048;
 
 fn cut(text: &str, cap: usize) -> String {
-    abai_stub::manifest::cut_utf8(text, cap).to_string()
+    crate::manifest::cut_utf8(text, cap).to_string()
 }
 
 /// One line of the log, being built.
