@@ -1,0 +1,24 @@
+[package]
+name = "abai-harness"
+description = "The agent-side half of abai: the agent loop, the model connection, and the agent end of every channel."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+
+[[bin]]
+name = "abai-harness"
+path = "src/main.rs"
+
+[dependencies]
+abai-stub = { path = "../abai-stub", version = "0.1.0" }
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+ureq = "3"
+
+[lints]
+workspace = true

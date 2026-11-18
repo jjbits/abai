@@ -1,0 +1,16 @@
+[package]
+name = "abai-stub"
+description = "The program-side half of abai: declarations, the region, and the program end of every channel."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }

@@ -2,7 +2,7 @@
 
 The contract every abaigram satisfies.
 
-Version 0.1, draft. 2026-10-22.
+Version 0.1, draft. 2026-11-05.
 
 ## 1. Purpose
 
@@ -465,16 +465,19 @@ Semantics:
   the call arrived during a cooperative pause.
 - If no harness is attached, `decide` returns the `default` at once and
   increments the decision's counter. It never connects or spawns.
-- If the timeout passes, the harness detaches, or the answer is invalid,
-  the `default` applies. The default may be the special value `abort`,
-  meaning the program should stop rather than proceed without the agent.
+- If the timeout passes, the harness detaches, the answer is invalid, or
+  the harness says to apply it, the `default` applies. The default may
+  be the special value `abort`, meaning the program should stop rather
+  than proceed without the agent.
 - Policy. `auto`: the agent's answer applies. `confirm`: the agent's
   answer is shown to the user and applies only if approved within the
   decision's timeout; with no user channel connected the default applies
   at once. `forbid`: the agent is never asked and the default applies.
 - The answer, its source (`agent`, `default`), and the reason for a
   default (`no_harness`, `timeout`, `invalid`, `detached`, `denied`,
-  `forbidden`) are written to the audit log.
+  `forbidden`, `answered`) are written to the audit log. `answered`
+  means the harness told the program to apply the default, as when the
+  agent ended its step without deciding.
 
 Cost: the program waits, by design, for as long as the agent takes, up to
 `timeout`. A decision belongs at a branch point where waiting is

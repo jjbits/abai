@@ -1,0 +1,16 @@
+[package]
+name = "example-counter"
+description = "A small abaigram that declares one of everything; the workspace's tests run it."
+publish = false
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+abai-harness = { path = "../abai-harness" }
+abai-stub = { path = "../abai-stub" }
+serde_json = "1"
+
+[lints]
+workspace = true

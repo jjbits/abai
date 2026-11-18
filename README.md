@@ -28,6 +28,10 @@ abaigram.
     open source [pi](https://github.com/earendil-works/pi) harness.
   - `abaikit/`: the authoring tool, itself an abaigram. Its guide for
     coding agents is `abaikit/abai/learnabai.md`.
+- `implementations/rust/`: the Rust implementation, a cargo workspace:
+  a stub, a harness and a small example. It is a pair of its own and
+  does not talk to the TypeScript pair. Its `README.md` says how a
+  program uses it and where it differs.
 - `examples/ornithopter/`: the example game, an abaigram your coding
   agent can supervise.
 - `examples/ornithopter-arena/`: the hosted arena: one world, a ship per
